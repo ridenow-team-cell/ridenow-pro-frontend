@@ -27,8 +27,15 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-
-// Mock Vehicle Data
+import { Progress } from "@/components/ui/progress"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 const vehicles = [
   { id: "BUS-102", type: "Bus", status: "Moving", driver: "John Doe", route: "Express-01", lat: 35, lng: 42, eta: "4m", speed: "42km/h", passengers: 28 },
   { id: "DRV-402", type: "Driver", status: "Idle", driver: "Sarah Smith", route: "Campus Loop", lat: 55, lng: 28, eta: "--", speed: "0km/h", passengers: 0 },

@@ -103,7 +103,7 @@ export default function IncidentsPage() {
                           <Badge className={
                              inc.status === 'Open' ? 'bg-rose-600' :
                              inc.status === 'Assigned' ? 'bg-amber-500' : 'bg-emerald-600'
-                          } size="sm">{inc.status.toUpperCase()}</Badge>
+                          }>{inc.status.toUpperCase()}</Badge>
                           <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{inc.asset}</span>
                        </div>
                     </div>

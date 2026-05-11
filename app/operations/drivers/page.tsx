@@ -37,8 +37,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+interface Driver {
+  id: string;
+  name: string;
+  status: string;
+  rating: number;
+  completion: number;
+  incidents: number;
+  currentTrip: string;
+  shift: string;
+}
+
 // Mock Driver Data
-const drivers = [
+const drivers: Driver[] = [
   { id: "DRV-001", name: "Alice Vance", status: "Active", rating: 4.9, completion: 98, incidents: 0, currentTrip: "TRP-1021", shift: "08:00 - 16:00" },
   { id: "DRV-002", name: "John Doe", status: "Active", rating: 4.7, completion: 94, incidents: 1, currentTrip: "TRP-0992", shift: "06:00 - 14:00" },
   { id: "DRV-003", name: "Sarah Connor", status: "Break", rating: 4.8, completion: 96, incidents: 0, currentTrip: "None", shift: "10:00 - 18:00" },
@@ -47,7 +58,7 @@ const drivers = [
 ]
 
 export default function DriverOpsPage() {
-  const [selectedDriver, setSelectedDriver] = React.useState<any>(null)
+  const [selectedDriver, setSelectedDriver] = React.useState<Driver | null>(null)
 
   return (
     <div className="space-y-8 pt-4 pb-10">
@@ -126,7 +137,7 @@ export default function DriverOpsPage() {
                              <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
                                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center font-bold text-xs text-primary">
-                                      {driver.name.split(' ').map(n => n[0]).join('')}
+                                      {driver.name.split(' ').map((n: string) => n[0]).join('')}
                                    </div>
                                    <div>
                                       <p className="font-bold tracking-tight text-sm">{driver.name}</p>
@@ -178,7 +189,7 @@ export default function DriverOpsPage() {
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                              <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xl">
-                                {selectedDriver.name.split(' ').map(n => n[0]).join('')}
+                                {selectedDriver.name.split(' ').map((n: string) => n[0]).join('')}
                              </div>
                              <div>
                                 <h2 className="text-2xl font-bold tracking-tight">{selectedDriver.name}</h2>
