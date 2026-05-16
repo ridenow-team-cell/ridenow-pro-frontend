@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { 
   ChevronLeft, 
   Zap, 
@@ -18,7 +18,9 @@ import {
   Sparkles,
   Smartphone,
   Wallet,
-  BadgePercent
+  BadgePercent,
+  Loader2,
+  Trash2
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -37,57 +39,14 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-const PRESET_PLANS = [
-  {
-    id: "basic",
-    name: "Flex Rider",
-    price: 5000,
-    credits: 10000,
-    bonus: 0,
-    color: "#22c55e",
-    tagline: "For light users who just need occasional rides",
-    features: [
-      "Pay-as-you-go rides",
-      "Seat booking per trip",
-      "Access to remaining seats",
-      "Real-time availability view"
-    ]
-  },
-  {
-    id: "standard",
-    name: "Daily Mover",
-    price: 10000,
-    credits: 22000,
-    bonus: 20,
-    color: "#3b82f6",
-    tagline: "For consistent students & staff",
-    features: [
-      "Lower cost per ride",
-      "Priority booking (before Basic users)",
-      "Peak-hour access advantage",
-      "Trip insurance on every ride",
-      "Usage insights (see trips left)"
-    ]
-  },
-  {
-    id: "priority",
-    name: "Always On Seat",
-    price: 15000,
-    credits: 36000,
-    bonus: 40,
-    color: "#a855f7",
-    tagline: "For serious commuters who don’t want uncertainty",
-    features: [
-      "Best value per ride",
-      "First access to booking (highest priority)",
-      "Reserved seat slots on every trip",
-      "Enhanced trip insurance",
-      "Auto-book option (lock your daily seat)",
-      "Zero stress commuting"
-    ]
-  }
-]
+import { 
+  getSubscriptionPlans, 
+  getSubscriptionPlan, 
+  createSubscriptionPlan, 
+  updateSubscriptionPlan,
+  type SubscriptionPlan,
+  type CreatePlanRequest
+} from "@/lib/api/subscriptions"
 
 const ADD_ONS = [
   { id: "boost", name: "Priority Boost", price: 1000, icon: Zap, desc: "Jump to front of booking queue anytime" },
@@ -100,28 +59,88 @@ const ADD_ONS = [
   { id: "alerts", name: "Smart Alerts", price: 300, icon: Bell, desc: "Notifications before booking opens" },
 ]
 
+const COLORS = ["#22c55e", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899", "#06b6d4"]
+
 export default function NewCreditPlanPage() {
   const router = useRouter()
-  const [selectedPreset, setSelectedPreset] = React.useState(PRESET_PLANS[1])
+  const searchParams = useSearchParams()
+  const editId = searchParams.get("edit")
+
+  const [presets, setPresets] = React.useState<SubscriptionPlan[]>([])
+  const [isLoadingPresets, setIsLoadingPresets] = React.useState(true)
+  const [selectedPresetId, setSelectedPresetId] = React.useState<string | null>(null)
+  const [isPublishing, setIsPublishing] = React.useState(false)
+  
   const [form, setForm] = React.useState({
-    name: PRESET_PLANS[1].name,
-    price: PRESET_PLANS[1].price.toString(),
-    credits: PRESET_PLANS[1].credits.toString(),
-    bonus: PRESET_PLANS[1].bonus.toString(),
-    features: PRESET_PLANS[1].features,
-    selectedAddOns: [] as string[]
+    id: "",
+    name: "",
+    description: "",
+    price: "0",
+    credits: "0",
+    bonus: "0",
+    customFeatures: [] as string[],
+    includedFeatures: [] as string[],
+    selectedAddOns: [] as string[],
+    isActive: true,
+    color: COLORS[1]
   })
 
-  const handlePresetSelect = (preset: typeof PRESET_PLANS[0]) => {
-    setSelectedPreset(preset)
+  // Fetch presets
+  React.useEffect(() => {
+    async function loadPresets() {
+      try {
+        setIsLoadingPresets(true)
+        const res = await getSubscriptionPlans()
+        if (res.success && res.data) {
+          setPresets(res.data)
+          
+          // If editing or if we have plans, select the first one as preset
+          if (editId) {
+             const planToEdit = res.data.find(p => p.id === editId)
+             if (planToEdit) {
+                populateFormFromPlan(planToEdit)
+             } else {
+                // Fetch specifically if not in active list
+                const singleRes = await getSubscriptionPlan(editId)
+                if (singleRes.success && singleRes.data) {
+                   populateFormFromPlan(singleRes.data)
+                }
+             }
+          } else if (res.data.length > 0) {
+             // populateFormFromPlan(res.data[0])
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load presets:", err)
+      } finally {
+        setIsLoadingPresets(false)
+      }
+    }
+    loadPresets()
+  }, [editId])
+
+  const populateFormFromPlan = (plan: SubscriptionPlan) => {
+    setSelectedPresetId(plan.id)
+    const firstOption = plan.pricingOptions[0] || { price: 0, baseCredit: 0, bonusPercentage: 0 }
+    
     setForm({
-      name: preset.name,
-      price: preset.price.toString(),
-      credits: preset.credits.toString(),
-      bonus: preset.bonus.toString(),
-      features: preset.features,
-      selectedAddOns: []
+      id: plan.id,
+      name: plan.planName,
+      description: plan.description,
+      price: firstOption.price.toString(),
+      credits: firstOption.baseCredit.toString(),
+      bonus: firstOption.bonusPercentage.toString(),
+      customFeatures: plan.customFeatures || [],
+      includedFeatures: plan.includedFeatures || [],
+      selectedAddOns: plan.availableAddOns || [],
+      isActive: plan.isActive,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)]
     })
+  }
+
+  const handlePresetSelect = async (plan: SubscriptionPlan) => {
+    setSelectedPresetId(plan.id)
+    populateFormFromPlan(plan)
   }
 
   const toggleAddOn = (id: string) => {
@@ -133,9 +152,67 @@ export default function NewCreditPlanPage() {
     }))
   }
 
+  const handleAddFeature = () => {
+    setForm(prev => ({
+      ...prev,
+      customFeatures: [...prev.customFeatures, "New Feature"]
+    }))
+  }
+
+  const handleRemoveFeature = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      customFeatures: prev.customFeatures.filter((_, i) => i !== index)
+    }))
+  }
+
+  const handlePublish = async () => {
+    try {
+      setIsPublishing(true)
+      
+      const payload: CreatePlanRequest = {
+        planName: form.name,
+        description: form.description,
+        includedFeatures: form.includedFeatures,
+        customFeatures: form.customFeatures,
+        availableAddOns: form.selectedAddOns,
+        pricingOptions: [
+          {
+            label: "Standard",
+            durationDays: 30,
+            baseCredit: parseInt(form.credits),
+            bonusPercentage: parseInt(form.bonus),
+            bonusCredit: Math.floor(parseInt(form.credits) * (parseInt(form.bonus) / 100)),
+            price: parseFloat(form.price),
+            currency: "NGN",
+            isPopular: true
+          }
+        ],
+        isActive: form.isActive
+      }
+
+      let res
+      if (form.id) {
+        res = await updateSubscriptionPlan(form.id, payload)
+      } else {
+        res = await createSubscriptionPlan(payload)
+      }
+
+      if (res.success) {
+        // Success feedback
+        router.push("/dashboard/subscriptions/plans")
+      }
+    } catch (err) {
+      console.error("Failed to publish plan:", err)
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
   const totalCredits = parseInt(form.credits || "0")
   const bonusPercentage = parseInt(form.bonus || "0")
-  const finalCredits = totalCredits // Treat the provided number as the final total
+  const bonusCredits = Math.floor(totalCredits * (bonusPercentage / 100))
+  const finalCredits = totalCredits + bonusCredits
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -152,16 +229,22 @@ export default function NewCreditPlanPage() {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Create Credit Plan</h1>
-              <p className="text-xs text-muted-foreground font-medium">Design a custom RideNow credit offering</p>
+              <h1 className="text-lg font-bold tracking-tight">{form.id ? "Edit Credit Plan" : "Create Credit Plan"}</h1>
+              <p className="text-xs text-muted-foreground font-medium">{form.id ? "Update existing plan properties" : "Design a custom RideNow credit offering"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="font-bold uppercase tracking-wider text-[10px] h-8">
+            <Button variant="outline" size="sm" className="font-bold uppercase tracking-wider text-[10px] h-8" disabled={isPublishing}>
               Save Draft
             </Button>
-            <Button size="sm" className="font-bold uppercase tracking-wider text-[10px] h-8 bg-primary">
-              Publish Plan
+            <Button 
+               size="sm" 
+               className="font-bold uppercase tracking-wider text-[10px] h-8 bg-primary" 
+               onClick={handlePublish}
+               disabled={isPublishing}
+            >
+              {isPublishing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+              {form.id ? "Update Plan" : "Publish Plan"}
             </Button>
           </div>
         </div>
@@ -179,34 +262,61 @@ export default function NewCreditPlanPage() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Select a Base Preset</h2>
               </div>
+              
               <div className="grid gap-4 md:grid-cols-3">
-                {PRESET_PLANS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => handlePresetSelect(preset)}
-                    className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 hover:shadow-lg ${
-                      selectedPreset.id === preset.id 
-                        ? "border-primary bg-primary/5 shadow-md" 
-                        : "border-border bg-card hover:border-primary/50"
-                    }`}
-                  >
-                    {selectedPreset.id === preset.id && (
-                      <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-sm animate-in zoom-in-50">
-                        <Check className="h-3.5 w-3.5" />
+                {isLoadingPresets ? (
+                   [1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />)
+                ) : (
+                  presets.map((plan) => (
+                    <button
+                      key={plan.id}
+                      onClick={() => handlePresetSelect(plan)}
+                      className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 hover:shadow-lg ${
+                        selectedPresetId === plan.id 
+                          ? "border-primary bg-primary/5 shadow-md" 
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                    >
+                      {selectedPresetId === plan.id && (
+                        <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-sm animate-in zoom-in-50">
+                          <Check className="h-3.5 w-3.5" />
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between mb-2">
+                         <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+                            <CreditCard className="h-4 w-4" />
+                         </div>
+                         <Badge variant="outline" className="text-[9px] font-bold border-primary/30 text-primary">
+                            ₦{plan.pricingOptions[0]?.price.toLocaleString() || "0"}
+                         </Badge>
                       </div>
-                    )}
-                    <div className="flex items-center justify-between mb-2">
-                       <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${preset.color}20`, color: preset.color }}>
-                          <CreditCard className="h-4 w-4" />
-                       </div>
-                       <Badge variant="outline" className="text-[9px] font-bold" style={{ borderColor: preset.color, color: preset.color }}>
-                          ₦{preset.price.toLocaleString()}
-                       </Badge>
-                    </div>
-                    <p className="font-bold text-sm">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{preset.tagline}</p>
-                  </button>
-                ))}
+                      <p className="font-bold text-sm truncate">{plan.planName}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{plan.description}</p>
+                    </button>
+                  ))
+                )}
+                <button 
+                   onClick={() => {
+                      setSelectedPresetId(null)
+                      setForm({
+                         id: "",
+                         name: "New Plan",
+                         description: "",
+                         price: "0",
+                         credits: "0",
+                         bonus: "0",
+                         customFeatures: [],
+                         includedFeatures: [],
+                         selectedAddOns: [],
+                         isActive: true,
+                         color: COLORS[0]
+                      })
+                   }}
+                   className="p-4 rounded-2xl border-2 border-dashed border-border bg-transparent flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                >
+                   <Plus className="h-5 w-5 text-muted-foreground" />
+                   <span className="text-xs font-bold text-muted-foreground">Blank Slate</span>
+                </button>
               </div>
             </section>
 
@@ -265,8 +375,29 @@ export default function NewCreditPlanPage() {
                 </div>
                 <div className="flex flex-col justify-end p-3 rounded-xl bg-primary/5 border border-primary/20">
                    <p className="text-[10px] font-bold text-primary uppercase tracking-tighter mb-1">Total Value</p>
-                   <p className="text-lg font-black text-primary leading-none">{(parseInt(form.credits || "0")).toLocaleString()} <span className="text-[10px] font-bold opacity-70">CREDITS</span></p>
+                   <p className="text-lg font-black text-primary leading-none">{finalCredits.toLocaleString()} <span className="text-[10px] font-bold opacity-70">CREDITS</span></p>
                 </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
+                  <Input 
+                    value={form.description} 
+                    onChange={e => setForm({...form, description: e.target.value})}
+                    placeholder="Short summary of the plan's value proposition"
+                    className="h-11 bg-muted/20 border-border"
+                  />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/50">
+                 <div className="space-y-0.5">
+                    <p className="text-sm font-bold">Active Status</p>
+                    <p className="text-[10px] text-muted-foreground">If disabled, this plan won't be visible to users.</p>
+                 </div>
+                 <Switch 
+                   checked={form.isActive}
+                   onCheckedChange={(val) => setForm({...form, isActive: val})}
+                 />
               </div>
             </section>
 
@@ -277,13 +408,18 @@ export default function NewCreditPlanPage() {
                   <BadgePercent className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-bold uppercase tracking-widest">Included Features</h2>
                 </div>
-                <Button variant="ghost" size="sm" className="text-[10px] font-bold uppercase text-primary h-7">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-[10px] font-bold uppercase text-primary h-7"
+                  onClick={handleAddFeature}
+                >
                   <Plus className="h-3 w-3 mr-1" /> Add Custom
                 </Button>
               </div>
               
               <div className="grid gap-3 md:grid-cols-2">
-                {form.features.map((feature, i) => (
+                {form.customFeatures.map((feature, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/50 group">
                     <div className="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
                       <Check className="h-3 w-3" />
@@ -291,14 +427,19 @@ export default function NewCreditPlanPage() {
                     <Input 
                       value={feature} 
                       onChange={e => {
-                        const newFeatures = [...form.features]
+                        const newFeatures = [...form.customFeatures]
                         newFeatures[i] = e.target.value
-                        setForm({...form, features: newFeatures})
+                        setForm({...form, customFeatures: newFeatures})
                       }}
                       className="h-8 bg-transparent border-none p-0 text-xs font-medium focus-visible:ring-0"
                     />
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ZapOff className="h-3 w-3 text-muted-foreground" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveFeature(i)}
+                    >
+                      <Trash2 className="h-3 w-3 text-rose-500" />
                     </Button>
                   </div>
                 ))}
@@ -374,7 +515,7 @@ export default function NewCreditPlanPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="relative w-full rounded-3xl p-6 overflow-hidden shadow-xl"
-                    style={{ backgroundColor: selectedPreset.color }}
+                    style={{ backgroundColor: form.color }}
                   >
                     {/* Abstract background shape */}
                     <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-white/10 rounded-full blur-3xl" />
@@ -384,7 +525,7 @@ export default function NewCreditPlanPage() {
                       <div className="flex justify-between items-start text-white">
                         <div>
                           <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Credit Plan</p>
-                          <h3 className="text-2xl font-black tracking-tight leading-none">{form.name}</h3>
+                          <h3 className="text-2xl font-black tracking-tight leading-none">{form.name || "Untitled Plan"}</h3>
                         </div>
                         <div className="h-10 w-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
                           <CreditCard className="h-5 w-5" />
@@ -403,7 +544,7 @@ export default function NewCreditPlanPage() {
                             <p className="text-[9px] font-bold opacity-70 uppercase mb-0.5">Price</p>
                             <p className="text-lg font-black leading-none">₦{parseInt(form.price || "0").toLocaleString()}</p>
                          </div>
-                         <div className="px-3 py-1.5 rounded-full bg-white text-[10px] font-black tracking-widest uppercase" style={{ color: selectedPreset.color }}>
+                         <div className="px-3 py-1.5 rounded-full bg-white text-[10px] font-black tracking-widest uppercase" style={{ color: form.color }}>
                             {parseInt(form.bonus || "0") > 0 ? `+${form.bonus}% Bonus` : "Standard"}
                          </div>
                       </div>
@@ -413,14 +554,18 @@ export default function NewCreditPlanPage() {
                   {/* Features in App */}
                   <div className="space-y-3">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">What's included</p>
-                    {form.features.map((feature, i) => (
-                      <div key={i} className="flex items-center gap-3 py-1">
-                        <div className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Check className="h-2.5 w-2.5 text-primary" />
+                    {form.customFeatures.length > 0 ? (
+                      form.customFeatures.map((feature, i) => (
+                        <div key={i} className="flex items-center gap-3 py-1">
+                          <div className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Check className="h-2.5 w-2.5 text-primary" />
+                          </div>
+                          <p className="text-[11px] font-medium leading-tight">{feature}</p>
                         </div>
-                        <p className="text-[11px] font-medium leading-tight">{feature}</p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground italic pl-1">No features defined yet.</p>
+                    )}
                   </div>
 
                   {/* Add-ons in App */}
@@ -447,7 +592,7 @@ export default function NewCreditPlanPage() {
                   <div className="pt-4">
                     <Button 
                       className="w-full h-12 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-                      style={{ backgroundColor: selectedPreset.color }}
+                      style={{ backgroundColor: form.color }}
                     >
                       Choose this Plan <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -459,7 +604,7 @@ export default function NewCreditPlanPage() {
               <div className="mt-8 grid grid-cols-2 gap-4 w-full">
                  <div className="p-4 rounded-3xl bg-card border border-border text-center">
                     <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Cost / Trip</p>
-                    <p className="text-sm font-black">₦{Math.round(parseInt(form.price || "0") / (finalCredits / 500))}</p>
+                    <p className="text-sm font-black">₦{finalCredits > 0 ? Math.round(parseInt(form.price || "0") / (finalCredits / 500)) : 0}</p>
                     <p className="text-[8px] text-muted-foreground mt-0.5 italic">Estimated</p>
                  </div>
                  <div className="p-4 rounded-3xl bg-card border border-border text-center">

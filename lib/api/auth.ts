@@ -8,6 +8,21 @@ export type SignInResponse = { otp_debug?: string }
 export type VerifyOtpPayload = { identifier: string; code: string }
 export type VerifyOtpResponse = { token: string }
 
+export type UserProfile = {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  phone_number: string
+  date_of_birth: string
+  heard_about_us: string
+  role: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+  created_by: string
+}
+
 // ── Auth API calls ─────────────────────────────────────────────────────────
 
 /**
@@ -27,4 +42,12 @@ export async function verifyOtp(identifier: string, code: string) {
     identifier,
     code,
   } satisfies VerifyOtpPayload)
+}
+
+/**
+ * Get current user profile
+ * GET /auth/profile
+ */
+export async function getProfile() {
+  return api.get<UserProfile>("/auth/profile")
 }

@@ -59,11 +59,6 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const data = {
-  user: {
-    name: "Alex Johnson",
-    email: "alex@ridenow.pro",
-    avatar: "/avatars/alex.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -85,11 +80,6 @@ const data = {
           title: "Billing Engine",
           url: "/dashboard/revenue/billing",
           icon: Cpu,
-        },
-        {
-          title: "Invoice System",
-          url: "/dashboard/revenue/invoices",
-          icon: FileText,
         },
       ],
     },
@@ -183,10 +173,19 @@ const data = {
 }
 
 import { usePathname } from "next/navigation"
+import { useProfile } from "@/hooks/use-profile"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, state } = useSidebar()
   const pathname = usePathname()
+  const { user, isLoading } = useProfile()
+
+  const userData = {
+    name: user ? `${user.first_name} ${user.last_name}` : "User",
+    email: user?.email || "user@ridenow.pro",
+    avatar: "/avatars/default.jpg",
+    initials: user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : "RN",
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar" {...props}>
@@ -298,12 +297,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={data.user.avatar} alt={data.user.name} />
-                    <AvatarFallback className="rounded-lg">AJ</AvatarFallback>
+                    <AvatarImage src={userData.avatar} alt={userData.name} />
+                    <AvatarFallback className="rounded-lg">{userData.initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{data.user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{data.user.email}</span>
+                    <span className="truncate font-semibold">{userData.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">{userData.email}</span>
                   </div>
                   <ChevronRight className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -317,12 +316,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={data.user.avatar} alt={data.user.name} />
-                      <AvatarFallback className="rounded-lg">AJ</AvatarFallback>
+                      <AvatarImage src={userData.avatar} alt={userData.name} />
+                      <AvatarFallback className="rounded-lg">{userData.initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{data.user.name}</span>
-                      <span className="truncate text-xs">{data.user.email}</span>
+                      <span className="truncate font-semibold">{userData.name}</span>
+                      <span className="truncate text-xs">{userData.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>

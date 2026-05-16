@@ -47,13 +47,26 @@ async function request<T>(
   }
 
   const res = await fetch(url, { ...options, headers })
-  const json = (await res.json()) as ApiResponse<T>
+  const json = (await res.json()) as any
 
-  if (!res.ok || !json.success) {
-    throw new ApiError(res.status, json.message ?? "An unexpected error occurred", json)
+  // If the response follows the standard ApiResponse format
+  if (json && typeof json === "object" && "success" in json) {
+    if (!res.ok || !json.success) {
+      throw new ApiError(res.status, json.message ?? "An unexpected error occurred", json)
+    }
+    return json as ApiResponse<T>
   }
 
-  return json
+  // Otherwise, if it's a 2xx response, treat the whole body as the data
+  if (res.ok) {
+    return {
+      success: true,
+      message: "Success",
+      data: json as T
+    }
+  }
+
+  throw new ApiError(res.status, "An unexpected error occurred", json)
 }
 
 export const api = {

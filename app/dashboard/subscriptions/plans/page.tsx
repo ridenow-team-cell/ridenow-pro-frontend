@@ -17,7 +17,10 @@ import {
   Package,
   Battery,
   Leaf,
-  Check
+  Check,
+  Loader2,
+  ArrowRight,
+  Sparkles
 } from "lucide-react"
 
 import {
@@ -49,93 +52,109 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-const initialPlans = [
-  { 
-    id: "P-001", 
-    name: "Flex Rider", 
-    duration: "Credit-Based", 
-    price: "₦5,000", 
-    tier: "Basic", 
-    access: "Standard Seats", 
-    active: 450,
-    features: ["10,000 Credits", "Seat booking per trip", "Pay-as-you-go"]
-  },
-  { 
-    id: "P-002", 
-    name: "Daily Mover", 
-    duration: "Credit-Based", 
-    price: "₦10,000", 
-    tier: "Standard", 
-    access: "Priority Booking", 
-    active: 1200,
-    features: ["22,000 Credits (+20% Bonus)", "Trip Insurance", "Peak-hour Access"]
-  },
-  { 
-    id: "P-003", 
-    name: "Always On Seat", 
-    duration: "Credit-Based", 
-    price: "₦15,000", 
-    tier: "Priority", 
-    access: "Guaranteed Seat", 
-    active: 320,
-    features: ["36,000 Credits (+40% Bonus)", "Auto-book Option", "Enhanced Insurance"]
-  },
-]
+import { getSubscriptionPlans, createSubscriptionPlan, type SubscriptionPlan } from "@/lib/api/subscriptions"
+import { getSubscriptionAnalytics, type SubscriptionAnalytics } from "@/lib/api/analytics"
 
 export default function PlanManagementPage() {
-  const [plans, setPlans] = React.useState(initialPlans)
+  const [plans, setPlans] = React.useState<SubscriptionPlan[]>([])
+  const [analytics, setAnalytics] = React.useState<SubscriptionAnalytics | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
+  const [isCreating, setIsCreating] = React.useState(false)
   
   // Quick Plan Form State (Sheet)
   const [newPlan, setNewPlan] = React.useState({
     name: "",
-    duration: "Monthly",
+    duration: "30",
     price: "",
-    tier: "Regular",
-    access: "Unlimited",
+    credits: "",
+    bonus: "0",
     insurance: {
       trip: false,
       stolenItems: false,
-      batteryFailure: false,
-      carbonOffset: true
     }
   })
 
-  const handleCreatePlan = () => {
-    const id = `P-00${plans.length + 1}`
-    const planToAdd = {
-      ...newPlan,
-      id,
-      price: `₦${parseFloat(newPlan.price || "0").toLocaleString()}`,
-      active: 0,
-      features: [
-        newPlan.insurance.trip && "Trip Insurance",
-        newPlan.insurance.stolenItems && "Stolen Item Protection",
-        newPlan.insurance.batteryFailure && "Battery Range Guarantee",
-        newPlan.insurance.carbonOffset && "Carbon Offset Certificate"
-      ].filter(Boolean) as string[]
-    }
-    setPlans([planToAdd, ...plans])
-    setIsCreateOpen(false)
-    // Reset form
-    setNewPlan({
-      name: "",
-      duration: "Monthly",
-      price: "",
-      tier: "Regular",
-      access: "Unlimited",
-      insurance: {
-        trip: false,
-        stolenItems: false,
-        batteryFailure: false,
-        carbonOffset: true
+  const fetchData = React.useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const [plansRes, analyticsRes] = await Promise.all([
+        getSubscriptionPlans(),
+        getSubscriptionAnalytics()
+      ])
+      
+      if (plansRes.success && plansRes.data) {
+        setPlans(plansRes.data)
       }
-    })
+      if (analyticsRes.success && analyticsRes.data) {
+        setAnalytics(analyticsRes.data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch plan data:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const handleQuickCreate = async () => {
+    try {
+      setIsCreating(true)
+      const customFeatures = []
+      if (newPlan.insurance.trip) customFeatures.push("Trip Insurance")
+      if (newPlan.insurance.stolenItems) customFeatures.push("Stolen Item Protection")
+
+      const payload = {
+        planName: newPlan.name,
+        description: `Quickly created ${newPlan.name} plan.`,
+        includedFeatures: [],
+        customFeatures: customFeatures,
+        availableAddOns: [],
+        pricingOptions: [
+          {
+            label: "Standard",
+            durationDays: parseInt(newPlan.duration),
+            baseCredit: parseInt(newPlan.credits || "0"),
+            bonusPercentage: parseInt(newPlan.bonus || "0"),
+            bonusCredit: Math.floor(parseInt(newPlan.credits || "0") * (parseInt(newPlan.bonus || "0") / 100)),
+            price: parseFloat(newPlan.price || "0"),
+            currency: "NGN",
+            isPopular: false
+          }
+        ],
+        isActive: true
+      }
+
+      const res = await createSubscriptionPlan(payload)
+      if (res.success) {
+        setIsCreateOpen(false)
+        fetchData()
+        // Reset form
+        setNewPlan({
+          name: "",
+          duration: "30",
+          price: "",
+          credits: "",
+          bonus: "0",
+          insurance: { trip: false, stolenItems: false }
+        })
+      }
+    } catch (err) {
+      console.error("Quick create failed:", err)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  if (isLoading) {
+    return <PlanLoadingScreen />
   }
 
   return (
-    <div className="space-y-6 pt-4 pb-10">
+    <div className="space-y-6 pt-4 pb-10 px-6">
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
@@ -194,23 +213,6 @@ export default function PlanManagementPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="duration" className="text-xs font-bold uppercase text-muted-foreground">Duration</Label>
-                          <Select 
-                            value={newPlan.duration} 
-                            onValueChange={(v) => setNewPlan({...newPlan, duration: v})}
-                          >
-                            <SelectTrigger id="duration" className="h-10 bg-muted/30 border-border">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Daily">Daily</SelectItem>
-                              <SelectItem value="Weekly">Weekly</SelectItem>
-                              <SelectItem value="Monthly">Monthly</SelectItem>
-                              <SelectItem value="Yearly">Yearly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
                           <Label htmlFor="price" className="text-xs font-bold uppercase text-muted-foreground">Base Price (₦)</Label>
                           <Input 
                             id="price" 
@@ -221,11 +223,22 @@ export default function PlanManagementPage() {
                             onChange={(e) => setNewPlan({...newPlan, price: e.target.value})}
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="credits" className="text-xs font-bold uppercase text-muted-foreground">Credits</Label>
+                          <Input 
+                            id="credits" 
+                            type="number" 
+                            placeholder="0" 
+                            className="h-10 bg-muted/30 border-border"
+                            value={newPlan.credits}
+                            onChange={(e) => setNewPlan({...newPlan, credits: e.target.value})}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Electric Fleet Insurance Options */}
+                  {/* Core Benefits */}
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                        <span className="h-1 w-1 rounded-full bg-primary" /> Core Benefits
@@ -276,9 +289,10 @@ export default function PlanManagementPage() {
               <SheetFooter className="p-6 border-t border-border bg-muted/20">
                 <Button 
                   className="w-full h-11 text-sm font-bold uppercase tracking-widest"
-                  onClick={handleCreatePlan}
-                  disabled={!newPlan.name || !newPlan.price}
+                  onClick={handleQuickCreate}
+                  disabled={!newPlan.name || !newPlan.price || isCreating}
                 >
+                  {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Confirm & Create Plan
                 </Button>
               </SheetFooter>
@@ -287,108 +301,140 @@ export default function PlanManagementPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Plan Summary Cards */}
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-card shadow-sm">
            <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Active Plans</CardTitle>
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active Subscribers</CardTitle>
            </CardHeader>
            <CardContent>
-              <div className="text-2xl font-bold tracking-tight">{plans.length}</div>
-              <p className="text-[10px] text-muted-foreground mt-1 font-medium">Across {new Set(plans.map(p => p.tier)).size} pricing tiers</p>
+              <div className="text-2xl font-bold tracking-tight">{analytics?.activeSubscribers?.count?.toLocaleString() || 0}</div>
+              <p className="text-[10px] text-emerald-600 mt-1 font-bold">+{analytics?.activeSubscribers?.change || 0}% Growth</p>
            </CardContent>
         </Card>
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-card shadow-sm">
            <CardHeader className="pb-2">
               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Most Popular</CardTitle>
            </CardHeader>
            <CardContent>
-              <div className="text-2xl font-bold tracking-tight">Daily Mover</div>
-              <p className="text-[10px] text-emerald-600 font-bold mt-1">52% of total userbase</p>
+              <div className="text-2xl font-bold tracking-tight">{analytics?.popularPlan?.name || "N/A"}</div>
+              <p className="text-[10px] text-primary font-bold mt-1">{analytics?.popularPlan?.percentage || 0}% of total userbase</p>
            </CardContent>
         </Card>
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-card shadow-sm">
            <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Credits Issued</CardTitle>
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">MRR Estimate</CardTitle>
            </CardHeader>
            <CardContent>
-              <div className="text-2xl font-bold tracking-tight">4.2M</div>
-              <p className="text-[10px] text-muted-foreground mt-1 font-medium">Across all active plans</p>
+              <div className="text-2xl font-bold tracking-tight">₦{(analytics?.monthlyRecurringRevenue?.amount || 0).toLocaleString()}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-medium">Monthly recurring revenue</p>
+           </CardContent>
+        </Card>
+        <Card className="border-border bg-card shadow-sm">
+           <CardHeader className="pb-2">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Credits Issued</CardTitle>
+           </CardHeader>
+           <CardContent>
+              <div className="text-2xl font-bold tracking-tight">{(analytics?.totalCreditsIssued || 0).toLocaleString()}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-medium">Total credits in circulation</p>
            </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-7">
         <div className="lg:col-span-4 space-y-4">
-          <Card className="border-border bg-card overflow-hidden">
+          <Card className="border-border bg-card shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border pb-4 bg-muted/20">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider">RideNow Credit Plans</CardTitle>
-              <CardDescription className="text-xs">Manage your official credit-based subscription tiers.</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider">RideNow Credit Plans</CardTitle>
+                  <CardDescription className="text-xs">Manage your official credit-based subscription tiers.</CardDescription>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-bold">{plans.length} Total Plans</Badge>
+              </div>
             </CardHeader>
             <div className="divide-y divide-border">
-              {plans.map((plan) => (
-                <div key={plan.id} className="p-4 hover:bg-muted/30 transition-colors group">
-                   <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                         <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            <Zap className="h-5 w-5" />
-                         </div>
-                         <div>
-                            <p className="font-bold text-sm leading-tight">{plan.name}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1.5 font-medium uppercase tracking-tight">{plan.duration} • {plan.tier} Tier</p>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <p className="font-bold text-base">{plan.price}</p>
-                         <Badge variant="outline" className="text-[9px] font-bold h-4 border-none bg-muted uppercase tracking-wider">{plan.active} USERS</Badge>
-                      </div>
-                   </div>
-                   
-                   {plan.features && plan.features.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                         {plan.features.map((feature, i) => (
-                            <div key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/5 text-[9px] font-bold text-primary uppercase border border-primary/10">
-                               <Check className="h-2.5 w-2.5" />
-                               {feature}
+              {plans.length > 0 ? (
+                plans.map((plan) => {
+                  const firstOption = plan.pricingOptions[0]
+                  return (
+                    <div key={plan.id} className="p-4 hover:bg-muted/30 transition-colors group">
+                      <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                <Zap className="h-5 w-5" />
                             </div>
-                         ))}
+                            <div>
+                                <p className="font-bold text-sm leading-tight">{plan.planName}</p>
+                                <p className="text-[10px] text-muted-foreground mt-1.5 font-medium uppercase tracking-tight">
+                                  {firstOption?.durationDays} Days • Credits: {firstOption?.baseCredit.toLocaleString()}
+                                </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-base">₦{firstOption?.price.toLocaleString()}</p>
+                            <Badge variant="outline" className={`text-[9px] font-bold h-4 border-none uppercase tracking-wider ${plan.isActive ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-700'}`}>
+                              {plan.isActive ? 'ACTIVE' : 'INACTIVE'}
+                            </Badge>
+                          </div>
                       </div>
-                   )}
+                      
+                      {plan.customFeatures && plan.customFeatures.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-4">
+                            {plan.customFeatures.map((feature, i) => (
+                                <div key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/5 text-[9px] font-bold text-primary uppercase border border-primary/10">
+                                  <Check className="h-2.5 w-2.5" />
+                                  {feature}
+                                </div>
+                            ))}
+                          </div>
+                      )}
 
-                   <div className="flex items-center justify-between mt-4 pt-2 border-t border-border/50">
-                      <div className="flex items-center gap-2">
-                         <Badge variant="secondary" className="font-bold text-[9px] uppercase gap-1 h-5">
-                            <MapPin className="h-3 w-3" /> {plan.access}
-                         </Badge>
-                         <Badge variant="secondary" className="font-bold text-[9px] uppercase gap-1 h-5">
-                            <Users className="h-3 w-3" /> {plan.tier} ONLY
-                         </Badge>
+                      <div className="flex items-center justify-between mt-4 pt-2 border-t border-border/50">
+                          <div className="flex items-center gap-2">
+                            {firstOption?.isPopular && (
+                              <Badge variant="secondary" className="font-bold text-[9px] uppercase gap-1 h-5 bg-amber-500/10 text-amber-700 border-none">
+                                <Sparkles className="h-3 w-3" /> Popular Choice
+                              </Badge>
+                            )}
+                            <Badge variant="secondary" className="font-bold text-[9px] uppercase gap-1 h-5 border-none">
+                              {firstOption?.bonusPercentage > 0 ? `+${firstOption.bonusPercentage}% Bonus` : 'Standard'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                            <Link href={`/dashboard/subscriptions/plans/new?edit=${plan.id}`}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                  <Settings2 className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-rose-600 hover:bg-transparent"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                            <Copy className="h-4 w-4" />
-                         </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                            <Settings2 className="h-4 w-4" />
-                         </Button>
-                         <Button 
-                           variant="ghost" 
-                           size="icon" 
-                           className="h-8 w-8 text-rose-600 hover:bg-transparent"
-                           onClick={() => setPlans(plans.filter(p => p.id !== plan.id))}
-                         >
-                            <Trash2 className="h-4 w-4" />
-                         </Button>
-                      </div>
-                   </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="p-20 text-center text-muted-foreground">
+                   <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                   <p className="text-sm font-bold uppercase tracking-widest">No plans found</p>
+                   <p className="text-xs">Create your first credit plan to get started.</p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <Card className="border-border bg-card overflow-hidden">
+          <Card className="border-border bg-card shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border pb-4">
               <div className="flex items-center gap-2">
                  <ShieldCheck className="h-5 w-5 text-primary" />
@@ -415,11 +461,11 @@ export default function PlanManagementPage() {
                  </div>
                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                       <span className="text-[10px] font-bold text-zinc-400">Bonus Absorption</span>
-                       <span className="text-[10px] font-bold text-emerald-500">24.5%</span>
+                       <span className="text-[10px] font-bold text-zinc-400">Churn Risk</span>
+                       <span className="text-[10px] font-bold text-emerald-500">{analytics?.churnRate?.percentage || 0}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
-                       <div className="h-full bg-emerald-500 w-[24.5%]" />
+                       <div className="h-full bg-emerald-500 w-[12.5%]" />
                     </div>
                     <p className="text-[9px] text-zinc-500 leading-relaxed italic">
                       "Plans with bonuses higher than 20% show a 3x increase in user retention over 90 days."
@@ -435,6 +481,27 @@ export default function PlanManagementPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PlanLoadingScreen() {
+  return (
+    <div className="flex h-[80vh] w-full items-center justify-center">
+      <div className="flex flex-col items-center gap-6">
+        <img 
+          src="/logo.png" 
+          alt="RideNow Logo" 
+          className="h-24 w-auto object-contain animate-breathing"
+        />
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2 text-primary animate-pulse">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Accessing Credit Ledger</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+          </div>
         </div>
       </div>
     </div>
