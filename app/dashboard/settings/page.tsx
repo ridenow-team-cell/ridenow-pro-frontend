@@ -68,8 +68,8 @@ export default function SettingsPage() {
         getOperationsSettings(),
         getOrganizationSettings()
       ])
-      if (ops.success) setOpsSettings(ops.data)
-      if (org.success) setOrgSettings(org.data)
+      if (ops.success && ops.data) setOpsSettings(ops.data)
+      if (org.success && org.data) setOrgSettings(org.data)
     } catch (err) {
       console.error("Failed to fetch settings:", err)
     } finally {

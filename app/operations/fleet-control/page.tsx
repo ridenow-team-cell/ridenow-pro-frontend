@@ -44,14 +44,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
+
 import {
   Select,
   SelectContent,
@@ -82,8 +75,8 @@ export default function FleetControlPage() {
         fleetApi.getBuses({ search }),
         fleetApi.getFleetAnalytics()
       ])
-      if (busesRes.success) setBuses(busesRes.data.buses)
-      if (analyticsRes.success) setAnalytics(analyticsRes.data)
+      if (busesRes.success && busesRes.data) setBuses(busesRes.data.buses)
+      if (analyticsRes.success && analyticsRes.data) setAnalytics(analyticsRes.data)
     } catch (error) {
       toast.error("Failed to fetch fleet data")
     } finally {

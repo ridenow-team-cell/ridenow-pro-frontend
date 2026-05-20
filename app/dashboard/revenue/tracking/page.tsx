@@ -285,7 +285,7 @@ export default function RevenueTrackingPage() {
                   <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
                     <div
                       className={`absolute h-full rounded-full transition-all duration-1000 ${item.color}`}
-                      style={{ width: `${item.progress}%` }}
+                      style={{ width: `${item.percentage}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">

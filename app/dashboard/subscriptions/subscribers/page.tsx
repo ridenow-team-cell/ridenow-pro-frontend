@@ -17,7 +17,8 @@ import {
   ArrowUpRight,
   ChevronRight,
   Download,
-  ExternalLink
+  ExternalLink,
+  Users
 } from "lucide-react"
 
 import {

@@ -189,31 +189,35 @@ export default function UserManagementPage() {
       return
     }
 
+    const userId = selectedUser.id
+    const userEmail = selectedUser.email
+    const userCreatedAt = selectedUser.created_at
+
     async function loadAuditLogs() {
       setIsLoadingLogs(true)
       try {
-        const res = await api.get<AuditLog[]>(`/admin/users/${selectedUser.id}/audit-logs`)
+        const res = await api.get<AuditLog[]>(`/admin/users/${userId}/audit-logs`)
         if (res.data && Array.isArray(res.data)) {
           setAuditLogs(res.data)
         } else {
           throw new Error("Invalid audit log response")
         }
       } catch (err) {
-        console.warn(`Failed to fetch logs for user ${selectedUser.id}, generating standard audit logs list:`, err)
+        console.warn(`Failed to fetch logs for user ${userId}, generating standard audit logs list:`, err)
         // Fallback standard audit log matching the curl payload structure
         setAuditLogs([
           {
             id: "6a0595f50a59ab8cdef1aff7",
-            userId: selectedUser.id,
+            userId: userId,
             action: "USER_SIGNUP",
             resource: "User",
-            resourceId: selectedUser.id,
+            resourceId: userId,
             metadata: {
-              email: selectedUser.email
+              email: userEmail
             },
             ipAddress: "192.168.1.5",
             userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            createdAt: selectedUser.created_at
+            createdAt: userCreatedAt
           }
         ])
       } finally {
@@ -520,9 +524,13 @@ export default function UserManagementPage() {
                       <td className="py-4 px-4 text-center">
                         <div className="flex justify-center">
                           {user.is_verified ? (
-                            <ShieldCheck className="h-5 w-5 text-emerald-500 fill-emerald-50/50" title="Identity Verified" />
+                            <span title="Identity Verified">
+                              <ShieldCheck className="h-5 w-5 text-emerald-500 fill-emerald-50/50" />
+                            </span>
                           ) : (
-                            <XCircle className="h-5 w-5 text-muted-foreground/40" title="Not Verified" />
+                            <span title="Not Verified">
+                              <XCircle className="h-5 w-5 text-muted-foreground/40" />
+                            </span>
                           )}
                         </div>
                       </td>

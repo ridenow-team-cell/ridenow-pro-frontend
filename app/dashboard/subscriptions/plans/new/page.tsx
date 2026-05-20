@@ -61,7 +61,7 @@ const ADD_ONS = [
 
 const COLORS = ["#22c55e", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899", "#06b6d4"]
 
-export default function NewCreditPlanPage() {
+function NewCreditPlanPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("edit")
@@ -615,5 +615,13 @@ export default function NewCreditPlanPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function NewCreditPlanPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-muted-foreground animate-pulse">Loading Configuration...</div>}>
+      <NewCreditPlanPageContent />
+    </React.Suspense>
   )
 }

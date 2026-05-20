@@ -95,13 +95,13 @@ export default function BusDetailPage() {
         fleetApi.getBusInspections(id)
       ])
 
-      if (busRes.success) {
+      if (busRes.success && busRes.data) {
         setBus(busRes.data)
         setUpdateStatus(busRes.data.status)
         setUpdateMileage(busRes.data.mileageKm.toString())
       }
-      if (refillsRes.success) setRefills(refillsRes.data.refills)
-      if (inspectionsRes.success) setInspections(inspectionsRes.data.inspections)
+      if (refillsRes.success && refillsRes.data) setRefills(refillsRes.data.refills)
+      if (inspectionsRes.success && inspectionsRes.data) setInspections(inspectionsRes.data.inspections)
     } catch (error) {
       toast.error("Failed to load vehicle details")
     } finally {
