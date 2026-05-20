@@ -25,7 +25,9 @@ import {
   Lock,
   HardDrive,
   Map,
-  Activity
+  Activity,
+  Navigation,
+  PlusCircle
 } from "lucide-react"
 
 import {
@@ -94,6 +96,11 @@ const data = {
           icon: ClipboardList,
         },
         {
+          title: "Add-ons",
+          url: "/dashboard/subscriptions/addons",
+          icon: PlusCircle,
+        },
+        {
           title: "Subscriber List",
           url: "/dashboard/subscriptions/subscribers",
           icon: UserCheck,
@@ -125,24 +132,27 @@ const data = {
           url: "/dashboard/fleet/trips",
           icon: Activity,
         },
+        {
+          title: "Schedules",
+          url: "/dashboard/fleet/schedules",
+          icon: ClipboardList,
+        },
+        {
+          title: "Virtual Bus Stops",
+          url: "/dashboard/fleet/bus-stops",
+          icon: Navigation,
+        },
+        {
+          title: "Incidents & Emergency",
+          url: "/dashboard/fleet/incidents",
+          icon: ShieldAlert,
+        },
       ],
     },
     {
       title: "Users Management",
       url: "/dashboard/users",
       icon: Users,
-      items: [
-        {
-          title: "Customer Management",
-          url: "/dashboard/users/customers",
-          icon: Users,
-        },
-        {
-          title: "Driver Management",
-          url: "/dashboard/users/drivers",
-          icon: Bus,
-        },
-      ],
     },
     {
       title: "Pricing & Plans",
@@ -174,6 +184,7 @@ const data = {
 
 import { usePathname } from "next/navigation"
 import { useProfile } from "@/hooks/use-profile"
+import { signOut } from "@/lib/auth"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, state } = useSidebar()
@@ -182,7 +193,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const userData = {
     name: user ? `${user.first_name} ${user.last_name}` : "User",
-    email: user?.email || "user@ridenow.pro",
+    email: user?.email || "user@RydeNow.pro",
     avatar: "/avatars/default.jpg",
     initials: user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : "RN",
   }
@@ -196,28 +207,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </div>
           {state !== "collapsed" && (
             <div className="flex flex-col gap-0 leading-none">
-              <span className="font-bold tracking-tight text-foreground">RideNow Pro</span>
+              <span className="font-bold tracking-tight text-foreground">RydeNow Pro</span>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Admin Elite</span>
             </div>
           )}
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent className="gap-0">
         <div className="px-4 py-4">
-           {state !== "collapsed" ? (
-             <div className="relative">
-               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-               <Input 
-                 placeholder="Quick Search..." 
-                 className="pl-9 h-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-               />
-             </div>
-           ) : (
-             <div className="flex justify-center">
-               <Search className="h-4 w-4 text-muted-foreground" />
-             </div>
-           )}
+          {state !== "collapsed" ? (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Quick Search..."
+                className="pl-9 h-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
         </div>
 
         <SidebarGroup>
@@ -237,8 +248,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     >
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton 
-                            tooltip={item.title} 
+                          <SidebarMenuButton
+                            tooltip={item.title}
                             isActive={pathname === item.url || item.items?.some(sub => pathname === sub.url)}
                             className="h-10 transition-all duration-200 hover:bg-white/10 active:scale-95 data-[active=true]:bg-white/20 data-[active=true]:text-white data-[active=true]:font-bold data-[active=true]:border-l-2 data-[active=true]:border-white data-[active=true]:rounded-none"
                           >
@@ -268,9 +279,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      tooltip={item.title} 
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.title}
                       isActive={pathname === item.url}
                       className="h-10 transition-all duration-200 hover:bg-white/10 active:scale-95 data-[active=true]:bg-white/20 data-[active=true]:text-white data-[active=true]:font-bold data-[active=true]:border-l-2 data-[active=true]:border-white data-[active=true]:rounded-none"
                     >
@@ -287,7 +298,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/50 p-2">
+      <SidebarFooter className="border-t border-border/50 p-2 gap-2 flex flex-col">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -341,12 +352,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => signOut()}>
                   <LogOut className="mr-2 size-4" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => signOut()}
+              className="text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 font-medium transition-all duration-200"
+              tooltip="Log out"
+            >
+              <LogOut className="size-[18px]" />
+              {state !== "collapsed" && <span className="font-semibold text-sm">Log out</span>}
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -29,22 +29,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 
-// Mock Trip Data
+// Mock Trip Data - Modified to show empty states by default but maintain layouts
 const trips = {
-  assigned: [
-    { id: "TRP-1021", route: "Campus Express", driver: "Alice Vance", time: "08:30 AM", passengers: 0, status: "Assigned" },
-    { id: "TRP-1025", route: "Sector-9 Loop", driver: "Bob Marley", time: "09:00 AM", passengers: 0, status: "Assigned" },
-  ],
-  in_progress: [
-    { id: "TRP-0992", route: "Airport Link", driver: "John Doe", progress: 65, passengers: 24, status: "In Progress" },
-    { id: "TRP-1004", route: "Downtown Hub", driver: "Sarah Connor", progress: 30, passengers: 12, status: "In Progress" },
-  ],
-  completed: [
-    { id: "TRP-0985", route: "Central Station", driver: "Mike Ross", duration: "45m", passengers: 48, status: "Completed" },
-  ],
-  delayed: [
-    { id: "TRP-1012", route: "Ring Road", driver: "Emma Stone", delay: "+15m", passengers: 35, status: "Delayed", reason: "Traffic Congestion" },
-  ]
+  assigned: [] as any[],
+  in_progress: [] as any[],
+  completed: [] as any[],
+  delayed: [] as any[]
 }
 
 export default function TripOpsPage() {
@@ -109,19 +99,19 @@ export default function TripOpsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-             <Activity className="h-7 w-7 text-primary" /> Trip Operations Control
+             <Activity className="h-7 w-7 text-primary animate-pulse" /> Trip Operations Control
           </h1>
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-primary" />
             Real-time Kanban flow for active transit operations.
           </p>
         </div>
         <div className="flex items-center gap-3">
            <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search trips or drivers..." className="pl-10 h-10 border-border bg-white" />
+              <Input placeholder="Search trips or drivers..." className="pl-10 h-10 border-border bg-white" disabled />
            </div>
-           <Button size="sm" className="h-10 px-6 font-semibold text-xs uppercase tracking-wider brand-gradient text-white">
+           <Button size="sm" className="h-10 px-6 font-semibold text-xs uppercase tracking-wider brand-gradient text-white opacity-80 cursor-not-allowed">
               Launch Manual Trip
            </Button>
         </div>
@@ -140,8 +130,18 @@ export default function TripOpsPage() {
                  <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">{trips.assigned.length}</Badge>
               </div>
               <ScrollArea className="flex-1 rounded-xl bg-muted/20 p-4">
-                 <div className="space-y-4">
-                    {trips.assigned.map(renderTripCard)}
+                 <div className="space-y-4 h-full flex flex-col justify-center">
+                    {trips.assigned.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center text-center py-20 px-4 space-y-3 bg-muted/10 border border-dashed border-border/60 rounded-xl">
+                          <Clock className="h-8 w-8 text-muted-foreground/40 animate-pulse" />
+                          <div className="space-y-0.5">
+                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">No Trips Assigned</p>
+                             <p className="text-[9px] text-muted-foreground font-medium max-w-[160px] mx-auto">Corridor schedules waiting driver claim allocations.</p>
+                          </div>
+                       </div>
+                    ) : (
+                       trips.assigned.map(renderTripCard)
+                    )}
                  </div>
               </ScrollArea>
            </div>
@@ -150,14 +150,24 @@ export default function TripOpsPage() {
            <div className="flex flex-col gap-4 min-w-[280px]">
               <div className="flex items-center justify-between px-1">
                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">In Progress</h3>
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-primary font-bold">In Progress</h3>
                  </div>
                  <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">{trips.in_progress.length}</Badge>
               </div>
               <ScrollArea className="flex-1 rounded-xl bg-primary/5 p-4 border border-primary/10">
-                 <div className="space-y-4">
-                    {trips.in_progress.map(renderTripCard)}
+                 <div className="space-y-4 h-full flex flex-col justify-center">
+                    {trips.in_progress.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center text-center py-20 px-4 space-y-3 bg-primary/5 border border-dashed border-primary/20 rounded-xl">
+                          <Zap className="h-8 w-8 text-primary/40 animate-bounce-slow" />
+                          <div className="space-y-0.5">
+                             <p className="text-[10px] font-bold text-primary/60 uppercase tracking-wider">No Active Runs</p>
+                             <p className="text-[9px] text-muted-foreground font-medium max-w-[160px] mx-auto">Live buses currently staging at primary terminals.</p>
+                          </div>
+                       </div>
+                    ) : (
+                       trips.in_progress.map(renderTripCard)
+                    )}
                  </div>
               </ScrollArea>
            </div>
@@ -171,9 +181,19 @@ export default function TripOpsPage() {
                  </div>
                  <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">{trips.completed.length}</Badge>
               </div>
-              <ScrollArea className="flex-1 rounded-xl bg-emerald-50/50 p-4 border border-emerald-100">
-                 <div className="space-y-4">
-                    {trips.completed.map(renderTripCard)}
+              <ScrollArea className="flex-1 rounded-xl bg-emerald-50/10 p-4 border border-emerald-500/10">
+                 <div className="space-y-4 h-full flex flex-col justify-center">
+                    {trips.completed.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center text-center py-20 px-4 space-y-3 bg-emerald-500/5 border border-dashed border-emerald-500/20 rounded-xl">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-500/40" />
+                          <div className="space-y-0.5">
+                             <p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-wider">No Completed Runs</p>
+                             <p className="text-[9px] text-muted-foreground font-medium max-w-[160px] mx-auto">Finished runs will archive here automatically daily.</p>
+                          </div>
+                       </div>
+                    ) : (
+                       trips.completed.map(renderTripCard)
+                    )}
                  </div>
               </ScrollArea>
            </div>
@@ -187,9 +207,19 @@ export default function TripOpsPage() {
                  </div>
                  <Badge variant="secondary" className="h-5 px-2 text-[10px] font-bold">{trips.delayed.length}</Badge>
               </div>
-              <ScrollArea className="flex-1 rounded-xl bg-rose-50/50 p-4 border border-rose-100">
-                 <div className="space-y-4">
-                    {trips.delayed.map(renderTripCard)}
+              <ScrollArea className="flex-1 rounded-xl bg-rose-50/10 p-4 border border-rose-500/10">
+                 <div className="space-y-4 h-full flex flex-col justify-center">
+                    {trips.delayed.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center text-center py-20 px-4 space-y-3 bg-rose-500/5 border border-dashed border-rose-500/20 rounded-xl">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-500/40" />
+                          <div className="space-y-0.5">
+                             <p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-wider">Schedules Clear</p>
+                             <p className="text-[9px] text-muted-foreground font-medium max-w-[160px] mx-auto">Zero corridor delays reported across networks.</p>
+                          </div>
+                       </div>
+                    ) : (
+                       trips.delayed.map(renderTripCard)
+                    )}
                  </div>
               </ScrollArea>
            </div>
@@ -228,7 +258,7 @@ export default function TripOpsPage() {
                              <div className="flex items-center gap-6 text-[10px] font-bold uppercase text-muted-foreground">
                                 <div className="flex items-center gap-1.5"><Users className="h-3 w-3" /> {selectedTrip.passengers} Pax</div>
                                 <div className="flex items-center gap-1.5"><User className="h-3 w-3" /> {selectedTrip.driver}</div>
-                             </div>
+                              </div>
                           </div>
                        </div>
 
@@ -242,7 +272,7 @@ export default function TripOpsPage() {
                                 <circle cx="0" cy="50" r="4" fill="#005baf" />
                                 <circle cx="100" cy="50" r="4" fill="#fff" />
                                 <circle cx="65" cy="25" r="6" fill="#005baf" className="animate-pulse" />
-                             </svg>
+                              </svg>
                              <div className="absolute bottom-4 right-4 bg-zinc-900 border border-zinc-800 p-2 rounded-lg text-[9px] font-bold uppercase tracking-widest text-zinc-400">
                                 Sector 4 → Central Station
                              </div>
@@ -296,7 +326,7 @@ export default function TripOpsPage() {
                           <Activity className="h-12 w-12 text-muted-foreground" />
                        </div>
                        <div>
-                          <p className="text-sm font-bold uppercase tracking-tight">Intelligence Stream Ready</p>
+                          <p className="text-sm font-bold uppercase tracking-tight text-foreground">Intelligence Stream Ready</p>
                           <p className="text-xs text-muted-foreground font-medium max-w-[200px] mx-auto">Select an active trip from the Kanban board to initiate deep operational oversight.</p>
                        </div>
                     </div>
@@ -304,16 +334,16 @@ export default function TripOpsPage() {
               </ScrollArea>
            </Card>
 
-           {/* Delay Alerts Panel */}
-           <Card className="border-border bg-rose-950 text-white p-5 space-y-4 shadow-lg shadow-rose-950/20">
+           {/* Operational Alerts Panel - Updated to match zero schedule delays state */}
+           <Card className="border-border bg-emerald-950 text-white p-5 space-y-4 shadow-lg shadow-emerald-950/20">
               <div className="flex items-center justify-between">
-                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-rose-300">Operational Alerts</h3>
-                 <AlertTriangle className="h-4 w-4 text-rose-300 animate-pulse" />
+                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Operational Alerts</h3>
+                 <CheckCircle2 className="h-4 w-4 text-emerald-300 animate-pulse" />
               </div>
               <div className="space-y-3">
-                 <div className="flex items-start gap-3 p-2 bg-rose-900/50 rounded-lg border border-rose-800">
-                    <div className="h-2 w-2 rounded-full bg-rose-400 mt-1.5" />
-                    <p className="text-[10px] font-medium text-rose-100">TRP-1012: Heavy congestion detected on Ring Road (+15m).</p>
+                 <div className="flex items-start gap-3 p-3 bg-emerald-900/50 rounded-lg border border-emerald-800">
+                    <div className="h-2 w-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                    <p className="text-[10px] font-medium text-emerald-100">All operational transit corridors running at peak scheduling efficiency.</p>
                  </div>
               </div>
            </Card>

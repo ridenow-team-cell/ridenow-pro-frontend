@@ -2,29 +2,23 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { 
-  MapPin, 
-  Clock, 
-  Bus, 
-  Users, 
-  CreditCard, 
-  Plus, 
-  Trash2, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  BarChart3, 
+import {
+  MapPin,
+  Clock,
+  Bus,
+  Users,
+  CreditCard,
+  Plus,
+  Trash2,
   ChevronLeft,
-  ShieldCheck,
-  Armchair,
-  Settings2,
   Navigation,
   Check,
   X,
   Zap,
   ArrowRightLeft,
-  FileEdit,
-  Info
+  Info,
+  Loader2,
+  AlertCircle
 } from "lucide-react"
 
 import {
@@ -47,60 +41,340 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { routesApi } from "@/lib/api/routes"
+import { busStopsApi, BusStop } from "@/lib/api/bus-stops"
 
 export default function AddRoutePage() {
   const router = useRouter()
+
+  // Route details state
   const [isActive, setIsActive] = React.useState(true)
-  const [routeName, setRouteName] = React.useState("Kubwa → UNIABUJA Campus Route")
-  const [stops, setStops] = React.useState([
-    { id: "1", name: "Kubwa Pickup Hub", type: "pickup", isSchool: false },
-    { id: "2", name: "Gwarinpa Stop", type: "mid", isSchool: false },
-    { id: "3", name: "UNIABUJA Main Gate", type: "dropoff", isSchool: true },
+  const [routeName, setRouteName] = React.useState("Lekki - Ajah Express")
+  const [routeCode, setRouteCode] = React.useState("R-001")
+  const [baseFare, setBaseFare] = React.useState(500)
+
+  // Dynamic Bus Stops loading
+  const [availableStops, setAvailableStops] = React.useState<BusStop[]>([])
+  const [loadingStops, setLoadingStops] = React.useState(true)
+
+  // Stops list state: backend format is stops: [{ busStopId, order, defaultFare }]
+  const [stopsList, setStopsList] = React.useState<Array<{
+    busStopId: string
+    defaultFare: number
+  }>>([
+    { busStopId: "", defaultFare: 0 },
+    { busStopId: "", defaultFare: 500 }
   ])
-  const [priorityReserved, setPriorityReserved] = React.useState([30])
-  const [access, setAccess] = React.useState({
-    basic: true,
-    standard: true,
-    priority: true,
-  })
-  const [trips, setTrips] = React.useState([
-    { id: "t1", time: "06:30", type: "Morning", buffer: 15 },
-    { id: "t2", time: "17:00", type: "Evening", buffer: 20 },
-  ])
+
+  // Google Maps state
+  const [isMapEngineLoaded, setIsMapEngineLoaded] = React.useState(false)
+  const mapRef = React.useRef<HTMLDivElement>(null)
+  const googleMapRef = React.useRef<any>(null)
+  const markersRef = React.useRef<any[]>([])
+  const polylineRef = React.useRef<any>(null)
+
+  // Simulation state
+  const [dwellTime, setDwellTime] = React.useState(2)
+  const [isSurgeActive, setIsSurgeActive] = React.useState(false)
+
+  // Form submission and error states
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = React.useState(false)
+
+  // Extra visual states
   const [isRoundtrip, setIsRoundtrip] = React.useState(false)
   const [instructions, setInstructions] = React.useState("")
 
-  const addTrip = () => {
-    const newTrip = { id: Math.random().toString(), time: "12:00", type: "Off-Peak", buffer: 10 }
-    setTrips([...trips, newTrip])
-  }
+  // Fetch stops list
+  React.useEffect(() => {
+    async function loadStops() {
+      try {
+        setLoadingStops(true)
+        const res = await busStopsApi.getBusStops({ isActive: true, limit: 100 })
+        if (res.success && res.data?.bus_stops) {
+          setAvailableStops(res.data.bus_stops)
+        }
+      } catch (err) {
+        console.error("Failed to load active bus stops:", err)
+      } finally {
+        setLoadingStops(false)
+      }
+    }
+    loadStops()
+  }, [])
 
-  const removeTrip = (id: string) => {
-    if (trips.length > 1) {
-      setTrips(trips.filter(t => t.id !== id))
+  // Load Google Maps SDK
+  React.useEffect(() => {
+    if (typeof window === "undefined") return
+    if ((window as any).google) {
+      setIsMapEngineLoaded(true)
+      return
+    }
+
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "AIzaSyBjpTeVMERj4TPGN8RU6UOmCtt6nnYVVqk"
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=geometry`
+    script.async = true
+    script.defer = true
+    script.onload = () => setIsMapEngineLoaded(true)
+    script.onerror = () => console.error("Google Maps SDK failed to load.")
+    document.head.appendChild(script)
+  }, [])
+
+  // Compute currently selected stops locations
+  const selectedStopsData = React.useMemo(() => {
+    return stopsList
+      .map((stop) => {
+        const matched = availableStops.find(s => s.id === stop.busStopId)
+        return matched ? {
+          id: matched.id,
+          name: matched.name,
+          lat: Number(matched.latitude),
+          lng: Number(matched.longitude),
+          code: matched.code
+        } : null
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null && !isNaN(s.lat) && !isNaN(s.lng))
+  }, [stopsList, availableStops])
+
+  // Initialize Map Engine instance
+  React.useEffect(() => {
+    if (!isMapEngineLoaded || !mapRef.current || typeof window === "undefined" || googleMapRef.current) return
+
+    const google = (window as any).google
+    if (!google) return
+
+    const mapInstance = new google.maps.Map(mapRef.current, {
+      center: { lat: 6.5244, lng: 3.3792 }, // Default center to Lagos
+      zoom: 12,
+      disableDefaultUI: false,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      styles: [
+        {
+          "featureType": "water",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#e9e9e9" }, { "lightness": 17 }]
+        },
+        {
+          "featureType": "landscape",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#f5f5f5" }, { "lightness": 20 }]
+        },
+        {
+          "featureType": "road.highway",
+          "elementType": "geometry.fill",
+          "stylers": [{ "color": "#ffffff" }, { "lightness": 17 }]
+        },
+        {
+          "featureType": "road.highway",
+          "elementType": "geometry.stroke",
+          "stylers": [{ "color": "#ffffff" }, { "lightness": 29 }, { "weight": 0.2 }]
+        },
+        {
+          "featureType": "road.arterial",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#ffffff" }, { "lightness": 18 }]
+        },
+        {
+          "featureType": "road.local",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#ffffff" }, { "lightness": 16 }]
+        },
+        {
+          "featureType": "poi",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#f5f5f5" }, { "lightness": 21 }]
+        },
+        {
+          "featureType": "poi.park",
+          "elementType": "geometry",
+          "stylers": [{ "color": "#dedede" }, { "lightness": 21 }]
+        },
+        {
+          "elementType": "labels.text.stroke",
+          "stylers": [{ "visibility": "on" }, { "color": "#ffffff" }, { "lightness": 16 }]
+        },
+        {
+          "elementType": "labels.text.fill",
+          "stylers": [{ "saturation": 36 }, { "color": "#333333" }, { "lightness": 40 }]
+        },
+        {
+          "elementType": "labels.icon",
+          "stylers": [{ "visibility": "off" }]
+        }
+      ]
+    })
+
+    googleMapRef.current = mapInstance
+  }, [isMapEngineLoaded])
+
+  // Update Markers and Polyline Flight Path
+  React.useEffect(() => {
+    if (!googleMapRef.current || typeof window === "undefined") return
+
+    const google = (window as any).google
+    if (!google) return
+
+    // Clear old markers
+    markersRef.current.forEach(m => m.setMap(null))
+    markersRef.current = []
+
+    // Clear old polyline
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null)
+      polylineRef.current = null
+    }
+
+    if (selectedStopsData.length === 0) return
+
+    const bounds = new google.maps.LatLngBounds()
+    const pathCoords: any[] = []
+
+    selectedStopsData.forEach((stop, idx) => {
+      const isStart = idx === 0
+      const isEnd = idx === selectedStopsData.length - 1
+      const pos = { lat: stop.lat, lng: stop.lng }
+      pathCoords.push(pos)
+      bounds.extend(pos)
+
+      // Color scheme matches sequence timeline UI
+      const markerColor = isStart ? "#3b82f6" : isEnd ? "#10b981" : "#f59e0b"
+
+      const marker = new google.maps.Marker({
+        position: pos,
+        map: googleMapRef.current,
+        title: stop.name,
+        label: {
+          text: (idx + 1).toString(),
+          color: "#ffffff",
+          fontWeight: "bold",
+          fontSize: "11px"
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: markerColor,
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2.5,
+          scale: 13,
+        }
+      })
+
+      // Interactive detail info card
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="font-family: system-ui, sans-serif; padding: 4px; max-width: 180px;">
+            <p style="margin: 0; font-weight: 700; font-size: 12px; color: #1e293b;">${stop.name}</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 600; color: #3b82f6;">Stop Sequence #${idx + 1}</p>
+            <p style="margin: 1px 0 0 0; font-size: 9px; font-weight: 500; color: #64748b;">Code: ${stop.code}</p>
+          </div>
+        `
+      })
+
+      marker.addListener("click", () => {
+        infoWindow.open(googleMapRef.current, marker)
+      })
+
+      markersRef.current.push(marker)
+    })
+
+    // Auto centering & zooming fitting bounds
+    if (selectedStopsData.length === 1) {
+      googleMapRef.current.setCenter(pathCoords[0])
+      googleMapRef.current.setZoom(14)
+    } else if (selectedStopsData.length > 1) {
+      googleMapRef.current.fitBounds(bounds)
+
+      // Draw Polyline Flight Path connecting Stops
+      const polylineInstance = new google.maps.Polyline({
+        path: pathCoords,
+        geodesic: true,
+        strokeColor: "#3b82f6",
+        strokeOpacity: 0.85,
+        strokeWeight: 4,
+      })
+      polylineInstance.setMap(googleMapRef.current)
+      polylineRef.current = polylineInstance
+    }
+  }, [selectedStopsData, isMapEngineLoaded])
+
+  // Simulation logic derived states
+  const totalDwellOverhead = React.useMemo(() => stopsList.length * dwellTime, [stopsList, dwellTime])
+  const estimatedTransitTime = React.useMemo(() => 25 + (stopsList.length * 5) + totalDwellOverhead, [stopsList, totalDwellOverhead])
+
+  const handleAddStop = () => {
+    if (stopsList.length < 8) {
+      const newStops = [...stopsList]
+      newStops.splice(stopsList.length - 1, 0, { busStopId: "", defaultFare: baseFare })
+      setStopsList(newStops)
     }
   }
 
-  const SCHOOLS = [
-    "University of Abuja (Main)",
-    "University of Abuja (City)",
-    "Baze University",
-    "Nile University",
-    "Veritas University"
-  ]
-
-  const addStop = () => {
-    if (stops.length < 8) {
-      const newStop = { id: Math.random().toString(), name: "New Stop", type: "mid", isSchool: false }
-      const newStops = [...stops]
-      newStops.splice(stops.length - 1, 0, newStop)
-      setStops(newStops)
+  const handleRemoveStop = (index: number) => {
+    if (stopsList.length > 2) {
+      setStopsList(stopsList.filter((_, idx) => idx !== index))
     }
   }
 
-  const removeStop = (id: string) => {
-    if (stops.length > 2) {
-      setStops(stops.filter(s => s.id !== id))
+  const handleStopChange = (index: number, busStopId: string) => {
+    const updated = [...stopsList]
+    updated[index].busStopId = busStopId
+    setStopsList(updated)
+  }
+
+  const handleStopFareChange = (index: number, fare: number) => {
+    const updated = [...stopsList]
+    updated[index].defaultFare = fare
+    setStopsList(updated)
+  }
+
+  const handleSaveRoute = async () => {
+    try {
+      setSubmitError(null)
+      setIsSubmitting(true)
+
+      // Validations
+      if (!routeName.trim()) {
+        throw new Error("Please enter a valid route name.")
+      }
+      if (!routeCode.trim()) {
+        throw new Error("Please enter a valid route code.")
+      }
+      if (stopsList.some(stop => !stop.busStopId)) {
+        throw new Error("All stops in the corridor must have a selected physical location.")
+      }
+
+      // Map stops to add order
+      const stopsPayload = stopsList.map((stop, index) => ({
+        busStopId: stop.busStopId,
+        order: index + 1,
+        defaultFare: stop.defaultFare
+      }))
+
+      const response = await routesApi.createRoute({
+        name: routeName,
+        code: routeCode,
+        baseFare: Number(baseFare) || 0,
+        stops: stopsPayload,
+        isActive
+      })
+
+      if (response.success) {
+        setSubmitSuccess(true)
+        setTimeout(() => {
+          router.push("/dashboard/fleet/routes")
+        }, 1500)
+      } else {
+        setSubmitError(response.message || "Failed to create route.")
+      }
+    } catch (err: any) {
+      setSubmitError(err.message || "An unexpected error occurred during creation.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -110,20 +384,21 @@ export default function AddRoutePage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-card p-6 rounded-xl border border-border shadow-sm">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => router.back()}
               className="h-8 w-8 rounded-full"
+              disabled={isSubmitting}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Route Designer
             </h1>
-            <Badge 
-              variant={isActive ? "default" : "secondary"} 
-              className={`h-5 text-[10px] font-semibold px-2 ${isActive ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-none' : 'bg-rose-500 hover:bg-rose-600 text-white border-none'}`}
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={`h-5 text-[10px] font-semibold px-2 border-none ${isActive ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}
             >
               {isActive ? "Active" : "Paused"}
             </Badge>
@@ -133,33 +408,50 @@ export default function AddRoutePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border">
-            <Label htmlFor="route-status" className="text-xs font-semibold text-muted-foreground">
-              {isActive ? "Route Online" : "Route Offline"}
-            </Label>
-            <Switch 
-              id="route-status" 
-              checked={isActive} 
-              onCheckedChange={setIsActive}
-            />
-          </div>
-          <Button size="sm" className="h-9 px-6 font-semibold shadow-sm">
-            Save Route Config
+          <Button
+            onClick={handleSaveRoute}
+            disabled={isSubmitting || submitSuccess}
+            size="sm"
+            className="h-9 px-6 font-semibold shadow-sm bg-primary"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...
+              </>
+            ) : submitSuccess ? (
+              "Created successfully!"
+            ) : (
+              "Save Route Config"
+            )}
           </Button>
         </div>
       </div>
 
+      {/* Submission Feedback */}
+      {submitError && (
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold flex items-center gap-2 shadow-sm animate-pulse">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {submitSuccess && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold flex items-center gap-2 shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+          <span>Route successfully logged into database! Redirecting to dashboard...</span>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-12">
-        
         {/* Left Column: Route Configuration */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* Route Definition */}
           <Card className="border-border bg-card overflow-hidden rounded-xl shadow-sm">
             <CardHeader className="border-b border-border bg-muted/20">
               <div className="flex items-center gap-2">
-                 <Navigation className="h-4 w-4 text-primary" />
-                 <CardTitle className="text-sm font-semibold">Operational Mapping</CardTitle>
+                <Navigation className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm font-semibold">Operational Mapping</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-8">
@@ -167,18 +459,22 @@ export default function AddRoutePage() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-3">
                   <Label className="text-xs font-semibold text-muted-foreground">Route Name / Corridor</Label>
-                  <Input 
+                  <Input
                     value={routeName}
                     onChange={(e) => setRouteName(e.target.value)}
-                    placeholder="e.g. Kubwa → UNIABUJA"
+                    placeholder="e.g. Lekki - Ajah Express"
                     className="h-11 font-medium bg-muted/20 border-border"
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="space-y-3">
                   <Label className="text-xs font-semibold text-muted-foreground">Route Code</Label>
-                  <Input 
-                    placeholder="e.g. KUB-UNI-01"
+                  <Input
+                    value={routeCode}
+                    onChange={(e) => setRouteCode(e.target.value)}
+                    placeholder="e.g. R-001"
                     className="h-11 font-medium bg-muted/20 border-border uppercase"
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -196,7 +492,7 @@ export default function AddRoutePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-muted-foreground">{isRoundtrip ? "Enabled" : "Disabled"}</span>
-                  <Switch checked={isRoundtrip} onCheckedChange={setIsRoundtrip} />
+                  <Switch checked={isRoundtrip} onCheckedChange={setIsRoundtrip} disabled={isSubmitting} />
                 </div>
               </div>
 
@@ -206,370 +502,316 @@ export default function AddRoutePage() {
                   <Label className="text-xs font-semibold text-muted-foreground">Specific Operational Instructions</Label>
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
-                <textarea 
-                  className="w-full min-h-[100px] p-4 rounded-xl bg-muted/20 border border-border text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  placeholder="Enter specific instructions for drivers on this route (e.g., 'Avoid peak traffic via bypass', 'Wait 5 mins at Science Plaza')..."
+                <textarea
+                  className="w-full min-h-[80px] p-4 rounded-xl bg-muted/20 border border-border text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  placeholder="Enter specific instructions for drivers on this route (e.g., 'Avoid peak traffic via bypass')...."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
+                  disabled={isSubmitting}
                 />
               </div>
 
               {/* Stops Configuration */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stops & Schools Configuration</Label>
-                   <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={addStop}
-                    disabled={stops.length >= 8}
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ordered Stops & Fares</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddStop}
+                    disabled={stopsList.length >= 8 || isSubmitting}
                     className="h-7 text-xs font-semibold text-primary"
-                   >
-                     <Plus className="h-3 w-3 mr-1" /> Add Intermediate Stop
-                   </Button>
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add intermediate stop
+                  </Button>
                 </div>
-                
+
                 <div className="relative pl-8 space-y-4">
                   <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-muted rounded-full" />
-                  
-                  {stops.map((stop, i) => (
-                    <div key={stop.id} className="relative flex items-center gap-4 group">
-                      <div className={`absolute -left-7 h-4 w-4 rounded-full border-4 border-background z-10 ${
-                        stop.isSchool ? 'bg-amber-500' :
-                        stop.type === 'pickup' ? 'bg-primary' : 
-                        stop.type === 'dropoff' ? 'bg-emerald-500' : 
-                        'bg-slate-400'
-                      }`} />
-                      
-                      <div className="flex-1 flex flex-col gap-3 p-4 bg-muted/30 border border-border rounded-xl hover:border-primary/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3 flex-1">
-                              <div className={`h-8 w-8 rounded-lg flex items-center justify-center border border-border ${stop.isSchool ? 'bg-amber-500/10 text-amber-600' : 'bg-background text-muted-foreground'}`}>
-                                <MapPin className="h-4 w-4" />
-                              </div>
-                              <Input 
-                                value={stop.name}
-                                onChange={(e) => {
-                                  const newStops = [...stops]
-                                  newStops[i].name = e.target.value
-                                  setStops(newStops)
-                                }}
-                                className="h-8 bg-transparent border-none p-0 text-sm font-semibold focus-visible:ring-0 max-w-[200px]"
-                              />
-                           </div>
-                           <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2 mr-2">
-                                 <Label className="text-[10px] font-bold uppercase text-muted-foreground">School Hub</Label>
-                                 <Switch 
-                                    checked={stop.isSchool} 
-                                    onCheckedChange={(v) => {
-                                       const newStops = [...stops]
-                                       newStops[i].isSchool = v
-                                       setStops(newStops)
-                                    }}
-                                    className="scale-75"
-                                 />
-                              </div>
-                              <Badge variant="secondary" className="h-5 text-[10px] font-semibold uppercase px-2">
-                                 {stop.type}
-                              </Badge>
-                              {stop.type === 'mid' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => removeStop(stop.id)}
-                                  className="h-6 w-6 text-rose-500"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                           </div>
-                        </div>
-                        {stop.isSchool && (
-                           <div className="pt-2 border-t border-border/50">
-                              <Select>
-                                 <SelectTrigger className="h-8 bg-background border-border text-[11px] font-medium">
-                                    <SelectValue placeholder="Link to specific school campus..." />
-                                 </SelectTrigger>
-                                 <SelectContent>
-                                    {SCHOOLS.map(school => (
-                                       <SelectItem key={school} value={school}>{school}</SelectItem>
-                                    ))}
-                                 </SelectContent>
-                              </Select>
-                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* Dynamic Schedule Setup */}
-              <div className="space-y-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Trip Schedules</Label>
-                   <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={addTrip}
-                    className="h-7 text-xs font-semibold text-primary"
-                   >
-                     <Plus className="h-3 w-3 mr-1" /> Add New Trip
-                   </Button>
-                </div>
-                
-                <div className="grid gap-3 md:grid-cols-2">
-                   {trips.map((trip, idx) => (
-                      <div key={trip.id} className="p-4 rounded-xl border border-border bg-muted/20 space-y-3 relative group">
-                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                               <Clock className="h-3.5 w-3.5 text-primary" />
-                               <span className="text-xs font-semibold uppercase">Trip #{idx + 1}</span>
-                               <Badge variant="outline" className="text-[8px] font-bold h-4">{trip.type}</Badge>
+                  {stopsList.map((stop, idx) => {
+                    const isStart = idx === 0
+                    const isEnd = idx === stopsList.length - 1
+
+                    return (
+                      <div key={idx} className="relative flex items-center gap-4 group">
+                        <div className={`absolute -left-7 h-4 w-4 rounded-full border-4 border-background z-10 ${isStart ? 'bg-primary' :
+                          isEnd ? 'bg-emerald-500' :
+                            'bg-amber-500'
+                          }`} />
+
+                        <div className="flex-1 flex flex-col gap-3 p-4 bg-muted/30 border border-border rounded-xl hover:border-primary/50 transition-colors">
+                          <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-[10px] font-bold uppercase text-muted-foreground">
+                                {isStart ? "Start Hub (Order #1)" : isEnd ? `Destination Hub (Order #${stopsList.length})` : `Stop Order #${idx + 1}`}
+                              </Label>
+                              <Select
+                                value={stop.busStopId}
+                                onValueChange={(val) => handleStopChange(idx, val)}
+                                disabled={isSubmitting}
+                              >
+                                <SelectTrigger className="h-10 bg-background border-border text-xs font-semibold">
+                                  <SelectValue placeholder={loadingStops ? "Syncing Virtual Stops..." : "Choose Bus Stop..."} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableStops.map(bs => (
+                                    <SelectItem key={bs.id} value={bs.id}>
+                                      {bs.name} ({bs.code}) • {bs.city}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeTrip(trip.id)}
-                              className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                               <Trash2 className="h-3 w-3" />
-                            </Button>
-                         </div>
-                         <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                               <span className="text-[10px] font-medium text-muted-foreground uppercase pl-0.5">Dep. Time</span>
-                               <Input 
-                                 type="time" 
-                                 defaultValue={trip.time} 
-                                 className="h-9 bg-background font-semibold text-xs border-border" 
-                               />
+
+                            <div className="w-full md:w-36 space-y-2">
+                              <Label className="text-[10px] font-bold uppercase text-muted-foreground">Fare contribution</Label>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  value={stop.defaultFare}
+                                  onChange={(e) => handleStopFareChange(idx, Number(e.target.value) || 0)}
+                                  className="h-10 text-xs font-bold bg-background border-border"
+                                  placeholder="e.g. 500"
+                                  disabled={isSubmitting}
+                                />
+                                <span className="absolute right-3 top-3 text-[9px] font-bold text-muted-foreground">₦</span>
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                               <span className="text-[10px] font-medium text-muted-foreground uppercase pl-0.5">Type</span>
-                               <Select defaultValue={trip.type}>
-                                  <SelectTrigger className="h-9 bg-background text-xs font-semibold">
-                                     <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                     <SelectItem value="Morning">Morning Peak</SelectItem>
-                                     <SelectItem value="Evening">Evening Peak</SelectItem>
-                                     <SelectItem value="Off-Peak">Off-Peak</SelectItem>
-                                     <SelectItem value="Night">Night Ride</SelectItem>
-                                  </SelectContent>
-                               </Select>
-                            </div>
-                         </div>
+
+                            {!isStart && !isEnd && (
+                              <div className="flex items-center justify-end self-end h-10">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveStop(idx)}
+                                  className="h-9 w-9 text-rose-500 rounded-lg hover:bg-rose-500/10"
+                                  disabled={isSubmitting}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                   ))}
+                    )
+                  })}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Capacity & Pricing */}
-          <div className="grid gap-6 md:grid-cols-2">
-             <Card className="border-border bg-card rounded-xl shadow-sm">
-                <CardHeader className="pb-4">
-                   <CardTitle className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                      <Armchair className="h-4 w-4 text-primary" /> Capacity & Allocation
-                   </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                   <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-xs font-medium text-muted-foreground">Total Capacity</Label>
-                        <Badge variant="outline" className="font-bold">22 SEATS</Badge>
-                      </div>
-                      <Select defaultValue="22">
-                        <SelectTrigger className="h-10 bg-muted/10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="14">14 Seats (Minivan)</SelectItem>
-                          <SelectItem value="18">18 Seats (Standard)</SelectItem>
-                          <SelectItem value="22">22 Seats (Large)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                   </div>
-                   <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-xs font-medium text-muted-foreground">Priority Reserved</Label>
-                        <span className="text-sm font-bold text-primary">{priorityReserved[0]}%</span>
-                      </div>
-                      <Slider 
-                        value={priorityReserved} 
-                        onValueChange={setPriorityReserved} 
-                        max={50} 
-                        step={5}
+          {/* Pricing & Credit Configuration */}
+          <Card className="border-border bg-card rounded-xl shadow-sm overflow-hidden border-l-4 border-l-primary">
+            <CardHeader className="pb-4 bg-muted/10 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider">Corridor Fare Configuration</CardTitle>
+                </div>
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold">
+                  CRD Price Matrix
+                </Badge>
+              </div>
+              <CardDescription className="text-[11px] text-muted-foreground font-medium mt-1">
+                Define the default operational base fare for passengers on this corridor and see projected load yields.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid gap-6 md:grid-cols-12">
+                {/* Left Column: Interactive Input & Presets */}
+                <div className="md:col-span-7 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-slate-700">Base Corridor Fare (CRD)</Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={baseFare}
+                        onChange={(e) => setBaseFare(Number(e.target.value) || 0)}
+                        className="h-11 pl-8 pr-12 text-base font-bold bg-muted/10 border-border"
+                        placeholder="e.g. 500"
+                        disabled={isSubmitting}
                       />
-                   </div>
-                </CardContent>
-             </Card>
+                      <span className="absolute left-3 top-3.5 text-xs font-bold text-muted-foreground">C</span>
+                      <span className="absolute right-3 top-3.5 text-[9px] font-bold text-muted-foreground uppercase">CRD</span>
+                    </div>
+                  </div>
 
-             <Card className="border-border bg-card rounded-xl shadow-sm">
-                <CardHeader className="pb-4">
-                   <CardTitle className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-primary" /> Credit Mapping
-                   </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                   <div className="space-y-3">
-                      <Label className="text-xs font-medium text-muted-foreground">Credits per Ride</Label>
-                      <div className="relative">
-                        <Input type="number" defaultValue="450" className="h-11 pr-16 text-base font-bold bg-muted/10 border-border" />
-                        <span className="absolute right-3 top-3 text-[10px] font-bold text-muted-foreground uppercase">Credits</span>
-                      </div>
-                   </div>
-                   <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 grid grid-cols-3 gap-2">
-                      <div className="text-center p-2 rounded-lg bg-background border border-border/50">
-                         <p className="text-[9px] font-bold text-muted-foreground uppercase">Basic</p>
-                         <p className="text-xs font-bold">450</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-background border border-border/50">
-                         <p className="text-[9px] font-bold text-muted-foreground uppercase">Standard</p>
-                         <p className="text-xs font-bold">450</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-primary/10 border border-primary/20">
-                         <p className="text-[9px] font-bold text-primary uppercase">Priority</p>
-                         <p className="text-xs font-bold text-primary">450</p>
-                      </div>
-                   </div>
-                </CardContent>
-             </Card>
-          </div>
+                  {/* Quick Presets */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Quick Presets</span>
+                    <div className="flex flex-wrap gap-2">
+                      {[200, 500, 1000, 1500, 2000].map((preset) => (
+                        <Button
+                          key={preset}
+                          type="button"
+                          variant={baseFare === preset ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setBaseFare(preset)}
+                          className="h-8 text-xs font-bold px-3 rounded-lg"
+                          disabled={isSubmitting}
+                        >
+                          CRD{preset}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-          {/* Subscription Controls */}
-          <Card className="border-border bg-slate-950 text-white rounded-xl overflow-hidden shadow-lg">
-             <CardHeader className="border-b border-white/10">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                      <CardTitle className="text-xs font-semibold uppercase tracking-wider">Access Control</CardTitle>
-                   </div>
-                   <Badge className="bg-emerald-500/10 text-emerald-400 border-none text-[10px] font-bold h-5 px-2 uppercase">Gated</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Transit Simulation & Dwell Intel */}
+          <Card className="border-border bg-card rounded-xl shadow-sm overflow-hidden border-l-4 border-l-amber-500">
+            <CardHeader className="pb-4 bg-muted/10 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider">Transit Time & Dwell Simulator</CardTitle>
                 </div>
-             </CardHeader>
-             <CardContent className="p-6">
-                <div className="grid gap-4 md:grid-cols-3">
-                   <div className={`p-4 rounded-xl border transition-all ${access.basic ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-40'}`}>
-                      <div className="flex items-center justify-between mb-4">
-                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Basic</p>
-                         <Switch checked={access.basic} onCheckedChange={(v) => setAccess({...access, basic: v})} />
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold">
-                         {access.basic ? <Check className="h-3 w-3 text-emerald-400" /> : <X className="h-3 w-3 text-rose-500" />}
-                         {access.basic ? "Allowed" : "Denied"}
-                      </div>
-                   </div>
-                   <div className={`p-4 rounded-xl border transition-all ${access.standard ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-40'}`}>
-                      <div className="flex items-center justify-between mb-4">
-                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Standard</p>
-                         <Switch checked={access.standard} onCheckedChange={(v) => setAccess({...access, standard: v})} />
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold">
-                         {access.standard ? <Check className="h-3 w-3 text-emerald-400" /> : <X className="h-3 w-3 text-rose-500" />}
-                         {access.standard ? "Allowed" : "Denied"}
-                      </div>
-                   </div>
-                   <div className={`p-4 rounded-xl border transition-all ${access.priority ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-40'}`}>
-                      <div className="flex items-center justify-between mb-4">
-                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Priority</p>
-                         <Switch checked={access.priority} onCheckedChange={(v) => setAccess({...access, priority: v})} />
-                      </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold">
-                         {access.priority ? <Check className="h-3 w-3 text-emerald-400" /> : <X className="h-3 w-3 text-rose-500" />}
-                         {access.priority ? "Allowed" : "Denied"}
-                      </div>
-                   </div>
+                <Badge className="bg-amber-500/10 text-amber-600 border-none text-[10px] font-bold h-5 px-2 uppercase">Simulation ONLY</Badge>
+              </div>
+              <CardDescription className="text-[11px] text-muted-foreground font-medium mt-1">
+                Simulate travel timelines and boarding overheads dynamically based on intermediate stops.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="grid gap-6 md:grid-cols-12">
+                {/* Left Side: Controls */}
+                <div className="md:col-span-7 space-y-5">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-xs font-bold text-slate-700">Dwell Time per Stop</Label>
+                      <span className="text-xs font-bold text-amber-600">{dwellTime} mins</span>
+                    </div>
+                    <Slider
+                      value={[dwellTime]}
+                      onValueChange={(val) => setDwellTime(val[0])}
+                      min={1}
+                      max={10}
+                      step={1}
+                    />
+                    <p className="text-[10px] text-muted-foreground font-medium mt-1">
+                      Set wait times at each physical stop along the corridor.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border">
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">Simulate Peak Hour Surge</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5 font-medium">Rush hour traffic premium preview.</p>
+                    </div>
+                    <Switch checked={isSurgeActive} onCheckedChange={setIsSurgeActive} />
+                  </div>
                 </div>
-             </CardContent>
+
+                {/* Right Side: Visual Metrics Output */}
+                <div className="md:col-span-5 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 flex flex-col justify-between space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Simulated Transit Metrics</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Estimated timeline impacts on schedule.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-medium border-b border-amber-500/10 pb-1.5">
+                      <span className="text-slate-500">Boarding Overhead</span>
+                      <span className="font-bold text-slate-800">{totalDwellOverhead} mins</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-medium border-b border-amber-500/10 pb-1.5">
+                      <span className="text-slate-500">Est. Total Duration</span>
+                      <span className="font-bold text-slate-800">{estimatedTransitTime} mins</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <span className="text-slate-500">Peak Surge Target</span>
+                      <span className="font-bold text-emerald-600">
+                        ₦{isSurgeActive ? Math.round(baseFare * 1.5) : baseFare}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Live Preview & Operations */}
+        {/* Right Column: Persistent Google Maps View Container & Stop LEDGER */}
         <div className="lg:col-span-4 space-y-6">
-          
-          {/* Live Route Preview (Visual Map) */}
-          <Card className="border-border bg-card rounded-xl overflow-hidden shadow-sm h-[400px] relative">
-             <div className="absolute inset-0 bg-muted/30">
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(hsl(var(--primary)) 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
-                
-                <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                  <path 
-                    d="M 60 80 Q 150 150 160 250 T 260 350" 
-                    fill="none" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth="3" 
-                    strokeLinecap="round"
-                    strokeDasharray="8 4"
-                    className="opacity-40"
-                  />
-                  <circle cx="60" cy="80" r="5" fill="hsl(var(--primary))" />
-                  <circle cx="160" cy="250" r="5" fill="hsl(var(--primary))" />
-                  <circle cx="260" cy="350" r="5" fill="#10b981" />
-                </svg>
+          <Card className="border-border bg-card rounded-xl overflow-hidden shadow-sm h-[500px] relative flex flex-col">
+            <div className="absolute top-4 left-4 z-10">
+              <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm border border-border h-7 gap-2 px-3 shadow-sm">
+                <Navigation className="h-3.5 w-3.5 text-primary animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Live GIS preview</span>
+              </Badge>
+            </div>
 
-                <div className="absolute left-[160px] top-[250px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                   <div className="bg-primary text-white p-1 rounded-lg shadow-lg">
-                      <Bus className="h-4 w-4" />
-                   </div>
+            {/* Persistently mounted Map div, ensuring google.maps.Map initiates immediately on DOM mount */}
+            <div className="flex-1 w-full h-full relative">
+              <div ref={mapRef} className="w-full h-full rounded-xl" />
+
+              {/* Loader Overlay when Maps SDK is fetching */}
+              {!isMapEngineLoaded && (
+                <div className="absolute inset-0 bg-muted/80 flex flex-col items-center justify-center gap-3 z-20 rounded-xl">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-xs text-muted-foreground font-semibold">Loading Map Engine...</p>
                 </div>
-             </div>
+              )}
 
-             <div className="absolute top-4 left-4">
-                <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm border border-border h-7 gap-2 px-3">
-                   <Navigation className="h-3.5 w-3.5 text-primary" />
-                   <span className="text-[10px] font-bold uppercase tracking-wider">Preview Intelligence</span>
-                </Badge>
-             </div>
+              {/* Welcome Placeholder Overlay shown when no stops are actively selected */}
+              {isMapEngineLoaded && selectedStopsData.length === 0 && (
+                <div className="absolute inset-0 bg-muted/95 flex flex-col items-center justify-center p-6 text-center gap-3 z-20 rounded-xl">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <MapPin className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">No stops mapped yet</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 max-w-[200px] mx-auto font-semibold leading-relaxed">
+                      Select bus stops on the left to display their coordinates, order, and polyline sequence paths on the interactive map.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
 
-          {/* Operational Controls */}
-          <Card className="border-border bg-card rounded-xl shadow-sm">
-             <CardHeader className="pb-4">
+          {/* Dynamic Stop Sequence Timeline Summary */}
+          {selectedStopsData.length > 0 && (
+            <Card className="border-border bg-card rounded-xl shadow-sm overflow-hidden border-t-4 border-t-primary animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <CardHeader className="pb-3 border-b border-border bg-muted/10">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                   <Settings2 className="h-4 w-4 text-primary" /> Operations
+                  <MapPin className="h-4 w-4 text-primary" /> Corridor Sequence Ledger
                 </CardTitle>
-             </CardHeader>
-             <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                   <Button 
-                    variant={isActive ? "outline" : "default"}
-                    onClick={() => setIsActive(true)}
-                    className="h-10 rounded-lg text-xs font-semibold"
-                   >
-                      <Play className="h-3.5 w-3.5 mr-2" /> Activate
-                   </Button>
-                   <Button 
-                    variant={!isActive ? "outline" : "destructive"}
-                    onClick={() => setIsActive(false)}
-                    className="h-10 rounded-lg text-xs font-semibold"
-                   >
-                      <Pause className="h-3.5 w-3.5 mr-2" /> Pause
-                   </Button>
-                </div>
-                <Button variant="outline" className="w-full h-10 rounded-lg border-border gap-3 justify-start px-4">
-                   <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-                   <span className="text-xs font-semibold">Reset Daily Manifest</span>
-                </Button>
-                <Button variant="outline" className="w-full h-10 rounded-lg border-border gap-3 justify-start px-4">
-                   <BarChart3 className="h-3.5 w-3.5 text-primary" />
-                   <span className="text-xs font-semibold">View Analytics</span>
-                </Button>
-             </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="p-5">
+                <div className="relative pl-6 space-y-4">
+                  <div className="absolute left-2.5 top-1 bottom-1 w-0.5 bg-muted rounded-full" />
 
-          <div className="p-5 rounded-xl bg-primary/5 border border-primary/10 space-y-3">
-             <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" />
-                <h3 className="text-xs font-bold uppercase text-primary">System Logic</h3>
-             </div>
-             <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-               This route uses <span className="font-bold text-foreground">Priority First</span> booking. Seats are allocated in real-time using credits. Pausing the route immediately restricts new bookings in the passenger app.
-             </p>
-          </div>
+                  {selectedStopsData.map((stop, idx) => {
+                    const isStart = idx === 0
+                    const isEnd = idx === selectedStopsData.length - 1
+                    const bulletColor = isStart ? "bg-primary" : isEnd ? "bg-emerald-500" : "bg-amber-500"
+
+                    return (
+                      <div key={stop.id} className="relative flex items-center justify-between text-xs py-0.5">
+                        <div className={`absolute -left-[19px] h-2.5 w-2.5 rounded-full border-2 border-background ${bulletColor}`} />
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-800">{stop.name}</p>
+                          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">
+                            Sequence Order #{idx + 1} • {stop.code}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-primary">₦{stopsList[idx]?.defaultFare || 0}</p>
+                          <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">Contribution</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

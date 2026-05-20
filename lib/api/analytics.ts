@@ -197,3 +197,96 @@ export async function getSubscriptionAnalytics() {
 export async function getFleetAnalytics() {
   return api.get<FleetAnalytics>("/analytics/fleet")
 }
+
+export type ReportData = {
+  overview: {
+    monthlyRecurringRevenue: {
+      title: string
+      amount: number
+      currency: string
+      formatted: string
+      change: {
+        value: number
+        type: "increase" | "decrease"
+        label: string
+      }
+    }
+    subscriberChurnRate: {
+      title: string
+      unit: string
+      change: {
+        value: number
+        type: "increase" | "decrease"
+        label: string
+      }
+    }
+    newSubscriptions: {
+      title: string
+      count: number
+      label: string
+    }
+  }
+  revenueVsChurn: {
+    title: string
+    description: string
+    data: Array<{
+      month: string
+      revenue: number
+      churn: number
+    }>
+    yAxis: {
+      revenueMax: number
+      churnMax: number
+    }
+  }
+  routeProfitabilityIndex: {
+    title: string
+    description: string
+    data: Array<{
+      name: string
+      profit: number
+      costs: number
+    }> | null
+    topPerformers: Array<{
+      name: string
+      roi: number
+      profit: number
+    }> | null
+  }
+  fleetStatusDistribution: {
+    title: string
+    categories: string[]
+    assetUtilization: {
+      mostUsedBuses: Array<{
+        name: string
+        utilization: string
+      }> | null
+      underutilizedRoutes: Array<{
+        route: string
+        avgLoad: number
+      }> | null
+    }
+  }
+  passengerDemandFlow: {
+    title: string
+    description: string
+    timeLabels: string[]
+    demand: number[]
+    insights: {
+      peakHour: string
+      peakNote: string
+      schedulingAdvice: {
+        title: string
+        description: string
+      }
+    }
+  }
+}
+
+/**
+ * Get reports and analytics data
+ * GET /analytics/report
+ */
+export async function getAnalyticsReport() {
+  return api.get<ReportData>("/analytics/report")
+}

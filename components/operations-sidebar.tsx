@@ -15,7 +15,8 @@ import {
   LogOut,
   Bell,
   User,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Calendar
 } from "lucide-react"
 
 import {
@@ -46,11 +47,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import { signOut } from "@/lib/auth"
 
 const data = {
   user: {
     name: "Alex Johnson",
-    email: "alex@ridenow.pro",
+    email: "alex@RydeNow.pro",
     avatar: "/avatars/alex.jpg",
   },
   navOperations: [
@@ -70,6 +72,11 @@ const data = {
       icon: Activity,
     },
     {
+      title: "Schedules",
+      url: "/dashboard/fleet/schedules",
+      icon: Calendar,
+    },
+    {
       title: "Virtual Bus Stops",
       url: "/operations/bus-stops",
       icon: Navigation,
@@ -83,11 +90,6 @@ const data = {
       title: "Incidents & Emergency",
       url: "/operations/incidents",
       icon: ShieldAlert,
-    },
-    {
-      title: "Demand Analytics",
-      url: "/operations/demand",
-      icon: TrendingUp,
     },
     {
       title: "System Settings",
@@ -110,28 +112,28 @@ export function OperationsSidebar({ ...props }: React.ComponentProps<typeof Side
           </div>
           {state !== "collapsed" && (
             <div className="flex flex-col gap-0 leading-none">
-              <span className="font-bold tracking-tight text-foreground">RideNow Pro</span>
+              <span className="font-bold tracking-tight text-foreground">RydeNow Pro</span>
               <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">Command Center</span>
             </div>
           )}
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent className="gap-0">
         <div className="px-4 py-4">
-           {state !== "collapsed" ? (
-             <div className="relative">
-               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-               <Input 
-                 placeholder="Search operations..." 
-                 className="pl-9 h-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-               />
-             </div>
-           ) : (
-             <div className="flex justify-center">
-               <Search className="h-4 w-4 text-muted-foreground" />
-             </div>
-           )}
+          {state !== "collapsed" ? (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search operations..."
+                className="pl-9 h-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
         </div>
 
         <SidebarGroup>
@@ -142,11 +144,11 @@ export function OperationsSidebar({ ...props }: React.ComponentProps<typeof Side
             <SidebarMenu className="px-2 gap-1">
               {data.navOperations.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    tooltip={item.title} 
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
                     isActive={pathname === item.url}
-                    className="h-10 transition-all duration-200 hover:bg-primary/5 active:scale-95 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                    className="h-10 transition-all duration-200 hover:bg-white/10 active:scale-95 data-[active=true]:bg-white/20 data-[active=true]:text-white data-[active=true]:font-bold data-[active=true]:border-l-2 data-[active=true]:border-white data-[active=true]:rounded-none"
                   >
                     <Link href={item.url} className="flex items-center gap-3">
                       <item.icon className="size-[18px]" />
@@ -160,16 +162,16 @@ export function OperationsSidebar({ ...props }: React.ComponentProps<typeof Side
         </SidebarGroup>
 
         <div className="mt-auto px-4 pb-4">
-           <Link href="/dashboard">
-              <Button variant="outline" className="w-full h-10 border-border bg-white/50 backdrop-blur-sm font-semibold text-[10px] uppercase tracking-wider gap-2">
-                 <ArrowLeftRight className="h-3 w-3" />
-                 {state !== "collapsed" ? "Switch to Admin" : ""}
-              </Button>
-           </Link>
+          <Link href="/dashboard">
+            <Button variant="outline" className="w-full h-10 border-border bg-white/50 backdrop-blur-sm font-semibold text-[10px] uppercase tracking-wider gap-2">
+              <ArrowLeftRight className="h-3 w-3" />
+              {state !== "collapsed" ? "Switch to Admin" : ""}
+            </Button>
+          </Link>
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/50 p-2">
+      <SidebarFooter className="border-t border-border/50 p-2 gap-2 flex flex-col">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -223,12 +225,23 @@ export function OperationsSidebar({ ...props }: React.ComponentProps<typeof Side
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive cursor-pointer" onClick={() => signOut()}>
                   <LogOut className="mr-2 size-4" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </SidebarMenuItem>
+
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => signOut()}
+              className="text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 font-medium transition-all duration-200"
+              tooltip="Log out"
+            >
+              <LogOut className="size-[18px]" />
+              {state !== "collapsed" && <span className="font-semibold text-sm">Log out</span>}
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

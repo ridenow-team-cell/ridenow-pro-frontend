@@ -42,7 +42,7 @@ export default function LoginPage() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0066cc] shadow-lg shadow-[#0066cc]/40">
             <Image
               src="/logo.png"
-              alt="RideNow"
+              alt="RydeNow"
               width={26}
               height={26}
               className="brightness-0 invert"
@@ -50,7 +50,7 @@ export default function LoginPage() {
             />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">
-            RideNow <span className="font-light text-white/50">Admin</span>
+            RydeNow <span className="font-light text-white/50">Admin</span>
           </span>
         </motion.div>
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
           className="border-l-2 border-[#0066cc]/60 pl-4"
         >
           <p className="text-sm italic text-white/40">
-            &ldquo;RideNow has revolutionised our fleet management. The admin panel is
+            &ldquo;RydeNow has revolutionised our fleet management. The admin panel is
             intuitive, powerful, and a pleasure to use every day.&rdquo;
           </p>
           <footer className="mt-2 text-xs font-semibold text-white/30">
@@ -123,14 +123,14 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0066cc]">
               <Image
                 src="/logo.png"
-                alt="RideNow"
+                alt="RydeNow"
                 width={24}
                 height={24}
                 className="brightness-0 invert"
                 style={{ height: "auto" }}
               />
             </div>
-            <span className="text-lg font-bold text-white">RideNow Admin</span>
+            <span className="text-lg font-bold text-white">RydeNow Admin</span>
           </div>
 
           <LoginForm />

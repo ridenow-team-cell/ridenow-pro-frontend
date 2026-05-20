@@ -13,9 +13,8 @@ import { ApiError } from "@/lib/api/client"
 function StepDot({ active, done }: { active: boolean; done: boolean }) {
   return (
     <span
-      className={`h-1.5 rounded-full transition-all duration-500 ${
-        done ? "w-6 bg-[#0066cc]" : active ? "w-6 bg-[#3399ff]" : "w-1.5 bg-white/20"
-      }`}
+      className={`h-1.5 rounded-full transition-all duration-500 ${done ? "w-6 bg-[#0066cc]" : active ? "w-6 bg-[#3399ff]" : "w-1.5 bg-white/20"
+        }`}
     />
   )
 }
@@ -166,7 +165,7 @@ export function LoginForm() {
         </div>
         <h2 className="text-3xl font-extrabold tracking-tight text-white">Welcome back</h2>
         <p className="mt-1.5 text-sm text-white/40">
-          Sign in to your RideNow admin account
+          Sign in to your RydeNow admin account
         </p>
       </div>
 
@@ -216,7 +215,7 @@ export function LoginForm() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@ridenow.com"
+                    placeholder="you@RydeNow.com"
                     className="
                       peer w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5
                       text-sm text-white placeholder:text-white/20

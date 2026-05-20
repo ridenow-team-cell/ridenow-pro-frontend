@@ -9,18 +9,19 @@ import {
   AlertTriangle, 
   Wrench, 
   MessageSquare, 
-  Flame, 
   PhoneCall, 
   MapPin, 
-  Navigation, 
   CheckCircle2, 
   Clock, 
   ChevronRight, 
-  Zap, 
-  BellRing,
-  AlertCircle,
   Siren,
-  ArrowRight
+  ArrowRight,
+  History,
+  User,
+  Phone,
+  Mail,
+  Send,
+  Navigation
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,218 +33,374 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { GoogleMap, Marker, useJsApiLoader, Polyline } from "@react-google-maps/api"
+import { toast } from "sonner"
 
-// Mock Incident Data
-const incidents = [
-  { id: "INC-9402", type: "SOS Alert", severity: "Critical", asset: "BUS-214", location: "Sector 7 Junction", time: "2m ago", status: "Open", desc: "Panic button triggered by driver. Immediate response required." },
-  { id: "INC-9398", type: "Accident", severity: "High", asset: "DRV-551", location: "Airport Link", time: "15m ago", status: "Assigned", desc: "Minor collision with passenger vehicle. No injuries reported." },
-  { id: "INC-9395", type: "Breakdown", severity: "Medium", asset: "BUS-089", location: "Downtown Hub", time: "42m ago", status: "Assigned", desc: "Engine overheating. Passengers transferred to BUS-102." },
-  { id: "INC-9390", type: "Passenger Complaint", severity: "Low", asset: "BUS-112", location: "Ring Road", time: "1h ago", status: "Resolved", desc: "Air conditioning failure reported in rear section." },
-]
+// Mock Incident Data - Modified to show zero/empty states by default
+const incidents: any[] = []
+
+const GOOGLE_MAPS_LIBRARIES: any = ["places"]
 
 export default function IncidentsPage() {
-  const [selectedIncident, setSelectedIncident] = React.useState<any>(incidents[0])
+  const [selectedIncident, setSelectedIncident] = React.useState<any>(null)
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = React.useState(false)
+  const [messageType, setMessageType] = React.useState<"driver" | "emergency">("driver")
+  const [messageText, setMessageText] = React.useState("")
+  
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
+    libraries: GOOGLE_MAPS_LIBRARIES
+  })
+
+  const handleSendMessage = () => {
+    toast.success(`Message sent to ${messageType === "driver" ? "Driver" : "Emergency Contact"}`)
+    setIsMessageDialogOpen(false)
+    setMessageText("")
+  }
+
+  const openMessageDialog = (type: "driver" | "emergency") => {
+    setMessageType(type)
+    setIsMessageDialogOpen(true)
+  }
 
   return (
-    <div className="space-y-8 pt-4 pb-10">
+    <div className="container mx-auto py-6 space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-             <ShieldAlert className="h-7 w-7 text-rose-600" /> Incidents & Emergency
-          </h1>
-          <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-            Live emergency response and resolution command center.
-          </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Incidents & Emergency</h1>
+          <p className="text-muted-foreground">Manage active emergencies and operational incidents.</p>
         </div>
-        <div className="flex items-center gap-3">
-           <Button variant="destructive" className="h-12 px-8 font-black text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20 animate-pulse">
-              <BellRing className="mr-2 h-4 w-4" /> Global SOS Trigger
-           </Button>
-        </div>
+
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3 h-[calc(100vh-250px)]">
-        {/* Live Incident Feed */}
-        <Card className="lg:col-span-1 border-border shadow-xl overflow-hidden flex flex-col">
-           <div className="p-4 border-b border-border bg-rose-50/30 flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-rose-800">Live Incident Stream</h3>
-              <Badge variant="outline" className="bg-rose-100 text-rose-700 border-rose-200 font-bold">{incidents.length}</Badge>
-           </div>
-           <ScrollArea className="flex-1">
-              <div className="divide-y divide-border">
-                 {incidents.map((inc) => (
+      <div className="grid gap-6 lg:grid-cols-12 h-[calc(100vh-200px)]">
+        {/* Incident List Sidebar */}
+        <div className="lg:col-span-4 flex flex-col gap-4 overflow-hidden">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search incidents..." className="pl-9 bg-background border-border" disabled />
+          </div>
+          
+          <Card className="flex-1 overflow-hidden flex flex-col">
+            <CardHeader className="py-3 px-4 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold">Active Stream</CardTitle>
+                <Badge variant="secondary" className="font-bold">{incidents.length}</Badge>
+              </div>
+            </CardHeader>
+            <ScrollArea className="flex-1">
+              <div className="divide-y h-full flex flex-col justify-center">
+                {incidents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center p-8 space-y-3 my-20">
+                     <CheckCircle2 className="h-10 w-10 text-emerald-500/60 animate-pulse" />
+                     <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">Zero Active Incidents</h4>
+                        <p className="text-[10px] text-muted-foreground leading-normal max-w-[200px] mx-auto">All campus corridors and assets are reporting nominal operations.</p>
+                     </div>
+                  </div>
+                ) : (
+                  incidents.map((inc) => (
                     <div 
-                       key={inc.id} 
-                       onClick={() => setSelectedIncident(inc)}
-                       className={`p-4 cursor-pointer hover:bg-muted/10 transition-all space-y-3 ${selectedIncident?.id === inc.id ? 'bg-primary/5 border-l-4 border-rose-600' : ''}`}
+                      key={inc.id} 
+                      onClick={() => setSelectedIncident(inc)}
+                      className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${selectedIncident?.id === inc.id ? 'bg-muted' : ''}`}
                     >
-                       <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                             {inc.type === 'SOS Alert' ? <Siren className="h-4 w-4 text-rose-600 animate-bounce" /> :
-                              inc.type === 'Accident' ? <AlertTriangle className="h-4 w-4 text-amber-600" /> :
-                              inc.type === 'Breakdown' ? <Wrench className="h-4 w-4 text-zinc-600" /> :
-                              <MessageSquare className="h-4 w-4 text-blue-600" />}
-                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{inc.id}</span>
-                          </div>
-                          <span className="text-[9px] font-bold text-muted-foreground">{inc.time}</span>
-                       </div>
-                       <div>
-                          <p className={`text-sm font-black tracking-tight ${inc.severity === 'Critical' ? 'text-rose-600' : 'text-foreground'}`}>{inc.type}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
-                             <MapPin className="h-3 w-3" /> {inc.location}
-                          </p>
-                       </div>
-                       <div className="flex items-center justify-between pt-1">
-                          <Badge className={
-                             inc.status === 'Open' ? 'bg-rose-600' :
-                             inc.status === 'Assigned' ? 'bg-amber-500' : 'bg-emerald-600'
-                          }>{inc.status.toUpperCase()}</Badge>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-primary">{inc.asset}</span>
-                       </div>
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {inc.type === 'SOS Alert' ? <Siren className="h-4 w-4 text-destructive animate-pulse" /> : 
+                           inc.severity === 'Critical' ? <AlertTriangle className="h-4 w-4 text-destructive" /> : 
+                           <Clock className="h-4 w-4 text-muted-foreground" />}
+                          <span className="text-xs font-medium text-muted-foreground">{inc.id}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{inc.time}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm">{inc.type}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {inc.location}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <Badge variant={
+                          inc.severity === 'Critical' ? 'destructive' : 
+                          inc.severity === 'High' ? 'default' : 'secondary'
+                        } className="text-[10px]">
+                          {inc.status}
+                        </Badge>
+                        <span className="text-[10px] font-medium uppercase text-muted-foreground">{inc.asset}</span>
+                      </div>
                     </div>
-                 ))}
+                  ))
+                )}
               </div>
-           </ScrollArea>
-        </Card>
+            </ScrollArea>
+          </Card>
+        </div>
 
-        {/* Emergency Detail & Map View */}
-        <Card className="lg:col-span-2 border-border shadow-xl flex flex-col overflow-hidden">
-           {selectedIncident ? (
-              <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-                 {/* Detail Header */}
-                 <div className={`p-6 border-b flex items-center justify-between ${
-                    selectedIncident.severity === 'Critical' ? 'bg-rose-600 text-white' : 'bg-muted/10'
-                 }`}>
-                    <div className="space-y-1">
-                       <h2 className="text-2xl font-black tracking-tighter uppercase">{selectedIncident.type}</h2>
-                       <p className={`text-xs font-bold uppercase tracking-widest ${
-                          selectedIncident.severity === 'Critical' ? 'text-white/70' : 'text-muted-foreground'
-                       }`}>Asset ID: {selectedIncident.asset} • {selectedIncident.location}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                       <Button variant={selectedIncident.severity === 'Critical' ? 'secondary' : 'outline'} className="font-bold text-[10px] uppercase tracking-widest">
-                          Contact Unit
-                       </Button>
-                    </div>
-                 </div>
-
-                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-                    {/* Resolution Workflow & Info */}
-                    <ScrollArea className="p-8 space-y-8 border-r border-border">
-                       <div className="space-y-4">
-                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Resolution Progress</p>
-                          <div className="flex items-center gap-2">
-                             {['Open', 'Assigned', 'Resolved'].map((step, i) => (
-                                <React.Fragment key={step}>
-                                   <div className={`flex items-center gap-2 ${
-                                      selectedIncident.status === step ? 'text-primary' : 
-                                      incidents.find(inc => inc.status === step) ? 'text-emerald-600' : 'text-zinc-300'
-                                   }`}>
-                                      <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
-                                         selectedIncident.status === step ? 'border-primary bg-primary/5' : 'border-zinc-200'
-                                      }`}>{i + 1}</div>
-                                      <span className="text-[10px] font-black uppercase tracking-widest">{step}</span>
-                                   </div>
-                                   {i < 2 && <ArrowRight className="h-3 w-3 text-zinc-200" />}
-                                </React.Fragment>
-                             ))}
-                          </div>
-                       </div>
-
-                       <div className="space-y-3">
-                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Incident Intelligence</p>
-                          <div className="p-6 bg-muted/20 rounded-2xl border border-border space-y-4">
-                             <div className="flex items-start gap-4">
-                                <div className="h-10 w-10 rounded-xl bg-white border border-border flex items-center justify-center text-rose-600 shadow-sm">
-                                   <AlertCircle className="h-5 w-5" />
-                                </div>
-                                <div>
-                                   <p className="text-sm font-medium leading-relaxed italic">"{selectedIncident.desc}"</p>
-                                </div>
-                             </div>
-                             <Separator />
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                   <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Reporting Time</p>
-                                   <p className="text-xs font-bold">14:42:08 GMT</p>
-                                </div>
-                                <div className="space-y-1">
-                                   <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Reliability Score</p>
-                                   <p className="text-xs font-bold text-emerald-600">High (98%)</p>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-
-                       <div className="space-y-4 pt-4">
-                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assigned Response</p>
-                          <div className="flex items-center justify-between p-4 border border-border rounded-xl bg-white">
-                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">RT</div>
-                                <div>
-                                   <p className="text-sm font-black tracking-tight">Response Team 4</p>
-                                   <p className="text-[10px] text-muted-foreground font-bold uppercase">En Route (ETA 4m)</p>
-                                </div>
-                             </div>
-                             <Button variant="ghost" size="icon" className="h-9 w-9 text-primary"><PhoneCall className="h-4 w-4" /></Button>
-                          </div>
-                       </div>
-                    </ScrollArea>
-
-                    {/* Emergency Map View (Simulated) */}
-                    <div className="relative bg-zinc-950 overflow-hidden">
-                       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-                       
-                       {/* Pulsing Emergency Pin */}
-                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                          <div className="relative h-24 w-24">
-                             <div className="absolute inset-0 bg-rose-600/40 rounded-full animate-ping" />
-                             <div className="absolute inset-4 bg-rose-600/60 rounded-full animate-pulse" />
-                             <div className="absolute inset-8 bg-rose-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-zinc-950">
-                                <MapPin className="h-4 w-4 text-white" />
-                             </div>
-                          </div>
-                       </div>
-
-                       {/* Map Overlay Controls */}
-                       <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-3">
-                          <div className="p-4 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-xl space-y-3">
-                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Nearby Assets</span>
-                                <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-[8px]">3 UNITS</Badge>
-                             </div>
-                             <div className="flex gap-2">
-                                {[1, 2, 3].map(i => (
-                                   <div key={i} className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                                      <div className="h-full bg-primary" style={{ width: '60%' }} />
-                                   </div>
-                                ))}
-                             </div>
-                          </div>
-                          <Button className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-900/40">
-                             Dispatch Emergency Unit
-                          </Button>
-                       </div>
-                    </div>
-                 </div>
+        {/* Detailed View & Map */}
+        <Card className="lg:col-span-8 flex flex-col overflow-hidden border-border bg-card">
+          {selectedIncident ? (
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="p-6 border-b flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={selectedIncident.severity === 'Critical' ? 'destructive' : 'outline'}>
+                      {selectedIncident.severity}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{selectedIncident.id}</span>
+                  </div>
+                  <h2 className="text-xl font-bold">{selectedIncident.type}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedIncident.location} • Asset {selectedIncident.asset}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openMessageDialog("driver")}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Driver
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => window.location.href = `tel:${selectedIncident.driverPhone || ''}`}>
+                        Call Driver
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>Assign Team</DropdownMenuItem>
+                      <DropdownMenuItem>Mark as Resolved</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive">Escalate Incident</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-           ) : (
-              <div className="h-full flex flex-col items-center justify-center p-12 text-center space-y-6 opacity-40">
-                 <ShieldAlert className="h-20 w-20 text-muted-foreground" />
-                 <div>
-                    <p className="text-xl font-black uppercase tracking-tight">System Standby</p>
-                    <p className="text-sm text-muted-foreground font-medium max-w-[300px] mx-auto">Select a live incident from the feed to initiate emergency protocols and response dispatch.</p>
-                 </div>
+
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+                {/* Details */}
+                <ScrollArea className="border-r h-full">
+                  <div className="p-6 flex flex-col gap-6">
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-semibold uppercase text-muted-foreground">Description</h4>
+                      <p className="text-sm text-foreground bg-muted/30 p-3 rounded-md border italic">
+                        "{selectedIncident.desc}"
+                      </p>
+                    </div>
+
+                    {selectedIncident.type === "SOS Alert" && (
+                      <>
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-semibold uppercase text-muted-foreground">Driver & Emergency Contact</h4>
+                          <div className="space-y-4">
+                            <Card className="shadow-none border-border">
+                              <CardContent className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm font-semibold">{selectedIncident.driverName}</span>
+                                  </div>
+                                  <Badge variant="outline">Driver</Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {selectedIncident.driverPhone}</span>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            <Card className="shadow-none border-primary/20 bg-primary/5">
+                              <CardContent className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-semibold">{selectedIncident.emergencyContact.name}</span>
+                                  </div>
+                                  <Badge variant="outline" className="border-primary/30 text-primary">Emergency Contact</Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1 font-medium text-foreground"><Phone className="h-3 w-3" /> {selectedIncident.emergencyContact.phone}</span>
+                                  <span className="text-[10px] uppercase font-bold text-primary/70">{selectedIncident.emergencyContact.relationship}</span>
+                                </div>
+                                <Button 
+                                  variant="link" 
+                                  size="sm" 
+                                  className="h-auto p-0 text-xs text-primary font-bold"
+                                  onClick={() => openMessageDialog("emergency")}
+                                >
+                                  <Send className="mr-1.5 h-3 w-3" /> Message Emergency Contact
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-semibold uppercase text-muted-foreground">Location History</h4>
+                          <div className="relative pl-4 space-y-4 before:absolute before:left-1 before:top-1 before:bottom-1 before:w-0.5 before:bg-muted">
+                            {selectedIncident.locationHistory?.map((loc: any, i: number) => (
+                              <div key={i} className="relative flex items-center justify-between">
+                                <div className="absolute -left-[18px] h-2 w-2 rounded-full bg-muted border-2 border-background" />
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>
+                                  <span className="text-[10px] text-muted-foreground">{loc.time}</span>
+                                </div>
+                                {i === selectedIncident.locationHistory.length - 1 && <Badge variant="outline" className="h-5 text-[9px] bg-emerald-50 text-emerald-600 border-emerald-100">Current</Badge>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-semibold uppercase text-muted-foreground">Status Workflow</h4>
+                      <div className="flex items-center gap-2 py-2">
+                        {['Open', 'Assigned', 'Resolved'].map((step, i) => (
+                          <React.Fragment key={step}>
+                            <div className="flex items-center gap-2">
+                              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                selectedIncident.status === step 
+                                  ? 'bg-primary text-primary-foreground' 
+                                  : 'bg-muted text-muted-foreground'
+                              }`}>{i + 1}</div>
+                              <span className={`text-[10px] font-medium ${selectedIncident.status === step ? 'text-primary' : 'text-muted-foreground'}`}>{step}</span>
+                            </div>
+                            {i < 2 && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Response ETA</p>
+                        <p className="text-sm font-semibold">4 Minutes</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Assigned Unit</p>
+                        <p className="text-sm font-semibold">Response Team 04</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 mt-auto">
+                      <Button className="w-full">
+                         Dispatch Emergency Support
+                      </Button>
+                    </div>
+                  </div>
+                </ScrollArea>
+
+                {/* GIS View */}
+                <div className="relative bg-muted h-full">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%' }}
+                      center={{ lat: selectedIncident.lat, lng: selectedIncident.lng }}
+                      zoom={15}
+                    >
+                      <Marker 
+                        position={{ lat: selectedIncident.lat, lng: selectedIncident.lng }} 
+                        label={selectedIncident.type === "SOS Alert" ? "!" : ""}
+                      />
+                      {selectedIncident.locationHistory && (
+                        <>
+                          <Polyline 
+                            path={selectedIncident.locationHistory}
+                            options={{ strokeColor: "#f43f5e", strokeOpacity: 0.6, strokeWeight: 3 }}
+                          />
+                          {selectedIncident.locationHistory.map((loc: any, i: number) => (
+                            <Marker 
+                              key={i}
+                              position={{ lat: loc.lat, lng: loc.lng }}
+                              icon={{
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 4,
+                                fillColor: "#f43f5e",
+                                fillOpacity: 0.4,
+                                strokeColor: "#ffffff",
+                                strokeWeight: 1
+                              }}
+                            />
+                          ))}
+                        </>
+                      )}
+                    </GoogleMap>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-xs text-muted-foreground uppercase font-bold">Loading Maps...</p>
+                    </div>
+                  )}
+                </div>
               </div>
-           )}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-card border-none">
+              <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-4 animate-pulse">
+                <CheckCircle2 className="h-10 w-10" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Emergency Console Ready</h3>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-2 leading-relaxed">
+                 The live GIS telemetry network is scanning transit corridors. Zero active breakdowns, accidents, or driver SOS alert signals detected.
+              </p>
+            </div>
+          )}
         </Card>
       </div>
+
+      {/* Message Trigger Dialog */}
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] border-border bg-card">
+          <DialogHeader>
+            <DialogTitle>Send Protocol Message</DialogTitle>
+            <DialogDescription>
+              Trigger a direct message to the {messageType === "driver" ? "Driver" : "Emergency Contact"} via SMS and App.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase text-muted-foreground">Recipient</p>
+              <div className="p-3 bg-muted rounded-lg flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  {messageType === "driver" ? selectedIncident?.driverName : selectedIncident?.emergencyContact.name}
+                </span>
+                <Badge variant="outline" className="text-[10px]">
+                  {messageType === "driver" ? selectedIncident?.driverPhone : selectedIncident?.emergencyContact.phone}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase text-muted-foreground">Message Content</p>
+              <Textarea 
+                placeholder="Enter your emergency message here..." 
+                className="min-h-[120px]"
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendMessage}>
+              <Send className="mr-2 h-4 w-4" /> Trigger Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

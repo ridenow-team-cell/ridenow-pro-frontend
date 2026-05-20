@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  RefreshCw, 
-  CreditCard, 
-  Search, 
-  Filter, 
-  Download, 
-  ArrowUpRight, 
+import {
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  RefreshCw,
+  CreditCard,
+  Search,
+  Filter,
+  Download,
+  ArrowUpRight,
   MoreHorizontal,
   ArrowRight,
   ShieldCheck,
@@ -51,7 +51,7 @@ export default function BillingPage() {
   }
 
   const { overview, recentBillingActivity } = data!
-  
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -148,21 +148,21 @@ export default function BillingPage() {
       {/* Billing Activity Section */}
       <Card className="border-border/60 shadow-sm bg-card/80 backdrop-blur-sm overflow-hidden">
         <CardHeader className="pb-4 border-b border-border/40">
-           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <CardTitle className="text-base font-bold">{recentBillingActivity.title}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">{recentBillingActivity.description}</p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="text-base font-bold">{recentBillingActivity.title}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{recentBillingActivity.description}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Search transactions..." className="pl-9 h-9 text-xs border-border/60" />
               </div>
-              <div className="flex items-center gap-2">
-                 <div className="relative w-full md:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input placeholder="Search transactions..." className="pl-9 h-9 text-xs border-border/60" />
-                 </div>
-                 <Button variant="outline" size="icon" className="h-9 w-9 border-border/60">
-                    <Download className="h-3.5 w-3.5" />
-                 </Button>
-              </div>
-           </div>
+              <Button variant="outline" size="icon" className="h-9 w-9 border-border/60">
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -185,10 +185,10 @@ export default function BillingPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 border border-border/60">
                             <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                              {item.user.split(' ').map(n => n[0]).join('')}
+                              {item.user ? item.user.split(' ').filter(Boolean).map(n => n[0]).join('') : 'RN'}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-bold tracking-tight">{item.user}</span>
+                          <span className="text-sm font-bold tracking-tight">{item.user || "Unknown User"}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}</td>
@@ -196,18 +196,17 @@ export default function BillingPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="h-5 w-8 rounded bg-muted/60 flex items-center justify-center overflow-hidden border border-border/40">
-                             <CreditCard className="h-3 w-3 text-muted-foreground" />
+                            <CreditCard className="h-3 w-3 text-muted-foreground" />
                           </div>
                           <span className="text-xs text-muted-foreground font-medium">{item.method}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge 
-                          className={`text-[9px] font-bold border-none px-2 h-5 ${
-                            item.status === 'Success' ? 'bg-emerald-500/10 text-emerald-700' : 
-                            item.status === 'Failed' ? 'bg-rose-500/10 text-rose-700' : 
-                            'bg-amber-500/10 text-amber-700'
-                          }`}
+                        <Badge
+                          className={`text-[9px] font-bold border-none px-2 h-5 ${item.status === 'Success' ? 'bg-emerald-500/10 text-emerald-700' :
+                              item.status === 'Failed' ? 'bg-rose-500/10 text-rose-700' :
+                                'bg-amber-500/10 text-amber-700'
+                            }`}
                         >
                           {item.status}
                         </Badge>
@@ -220,11 +219,11 @@ export default function BillingPage() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-6 py-24 text-center">
-                       <div className="flex flex-col items-center justify-center opacity-30">
-                          <CreditCard className="h-12 w-12 mb-4 text-muted-foreground/40" />
-                          <p className="text-sm font-bold uppercase tracking-widest mb-1">No Recent activity</p>
-                          <p className="text-xs">Live billing logs will appear here as they process</p>
-                       </div>
+                      <div className="flex flex-col items-center justify-center opacity-30">
+                        <CreditCard className="h-12 w-12 mb-4 text-muted-foreground/40" />
+                        <p className="text-sm font-bold uppercase tracking-widest mb-1">No Recent activity</p>
+                        <p className="text-xs">Live billing logs will appear here as they process</p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -233,10 +232,10 @@ export default function BillingPage() {
           </div>
         </CardContent>
         <CardFooter className="bg-muted/10 px-6 py-3 border-t border-border/40 flex items-center justify-between">
-           <p className="text-[10px] font-medium text-muted-foreground italic">Live billing bridge connected • Last sync: Just now</p>
-           <Button variant="ghost" size="sm" className="text-xs font-bold gap-1.5 text-primary h-8">
-              Open Full Audit Log <ArrowRight className="h-3.5 w-3.5" />
-           </Button>
+          <p className="text-[10px] font-medium text-muted-foreground italic">Live billing bridge connected • Last sync: Just now</p>
+          <Button variant="ghost" size="sm" className="text-xs font-bold gap-1.5 text-primary h-8">
+            Open Full Audit Log <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
         </CardFooter>
       </Card>
     </div>
@@ -248,9 +247,9 @@ function BillingLoadingScreen() {
     <div className="flex h-[80vh] w-full items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <img 
-            src="/logo.png" 
-            alt="RideNow Logo" 
+          <img
+            src="/logo.png"
+            alt="RydeNow Logo"
             className="h-24 w-auto object-contain animate-breathing"
           />
         </div>

@@ -16,7 +16,9 @@ import {
   Zap,
   Activity,
   History,
-  Info
+  Info,
+  Loader2,
+  AlertCircle
 } from "lucide-react"
 
 import {
@@ -35,39 +37,88 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { routesApi, RouteDetailsData } from "@/lib/api/routes"
+import { busStopsApi } from "@/lib/api/bus-stops"
 
 export default function RouteDetailsPage() {
   const router = useRouter()
   const params = useParams()
   const routeId = params.id as string
 
-  // Mock data for the specific route
-  const routeData = {
-    id: routeId,
-    name: "Kubwa → UNIABUJA Campus",
-    status: "Active",
-    loadFactor: 85,
-    activeBus: "BUS-042",
-    driver: "Tunde Ojo",
-    nextTrip: "17:00",
-    stops: [
-      { name: "Kubwa Main Hub", type: "Pickup", time: "Start" },
-      { name: "Gwarinpa Station", type: "Mid", time: "+15m" },
-      { name: "UNIABUJA Main Gate", type: "School Hub", time: "+45m" },
-    ],
-    manifest: [
-      { id: "U1", name: "Alex Johnson", type: "Priority", seat: "A1", status: "Boarded" },
-      { id: "U2", name: "Sarah Williams", type: "Standard", seat: "A2", status: "Boarded" },
-      { id: "U3", name: "David Kalu", type: "Basic", seat: "B1", status: "Awaiting" },
-      { id: "U4", name: "Ibrahim Musa", type: "Priority", seat: "B2", status: "Boarded" },
-      { id: "U5", name: "Blessing Okon", type: "Standard", seat: "C1", status: "Boarded" },
-    ]
+  const [details, setDetails] = React.useState<RouteDetailsData | null>(null)
+  const [stopsMap, setStopsMap] = React.useState<Record<string, string>>({})
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        setError(null)
+        const [detailsRes, stopsRes] = await Promise.all([
+          routesApi.getRouteDetails(routeId),
+          busStopsApi.getBusStops({ limit: 100 })
+        ])
+
+        if (stopsRes.success && stopsRes.data?.bus_stops) {
+          const mapping: Record<string, string> = {}
+          stopsRes.data.bus_stops.forEach(stop => {
+            mapping[stop.id] = stop.name
+          })
+          setStopsMap(mapping)
+        }
+
+        if (detailsRes.success && detailsRes.data) {
+          setDetails(detailsRes.data)
+        } else {
+          setError(detailsRes.message || "Failed to load route configuration.")
+        }
+      } catch (err: any) {
+        console.error(err)
+        setError("Error synchronizing route intelligence feed.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (routeId) {
+      loadData()
+    }
+  }, [routeId])
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground italic">Syncing Corridor Details...</p>
+      </div>
+    )
   }
+
+  if (error || !details) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center gap-4 text-center max-w-md mx-auto p-4">
+        <AlertCircle className="h-12 w-12 text-destructive animate-bounce" />
+        <h2 className="text-lg font-bold text-foreground">Corridor Feed Error</h2>
+        <p className="text-xs text-muted-foreground">{error || "Could not retrieve configuration for this route corridor."}</p>
+        <Button onClick={() => window.location.reload()} size="sm" className="mt-2 bg-primary">
+          Retry Sync
+        </Button>
+      </div>
+    )
+  }
+
+  const { route, schedules, tripHistory, statistics } = details
+
+  // Map stops array to named stops
+  const stopsList = route.stops?.map(stop => ({
+    name: stopsMap[stop.busStopId] || `Bus Stop (${stop.busStopId.substring(18)})`,
+    order: stop.order,
+    defaultFare: stop.defaultFare
+  })).sort((a, b) => a.order - b.order) || []
+
+  // Est revenue projection
+  const projectedRevenue = statistics.totalBookings * route.baseFare
 
   return (
     <div className="space-y-6 pt-4 pb-10">
@@ -84,24 +135,19 @@ export default function RouteDetailsPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {routeData.name}
+              {route.name}
             </h1>
-            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-none font-bold uppercase text-[10px]">
-              {routeData.status}
+            <Badge variant="secondary" className={`border-none font-bold uppercase text-[10px] ${
+              route.isActive ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
+            }`}>
+              {route.isActive ? "Active" : "Paused"}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground font-medium pl-11 uppercase tracking-wider text-[10px]">
-            Corridor Intelligence • {routeData.id}
+            Corridor Intelligence • {route.code}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-9 px-4 font-semibold text-xs border-border">
-            <Settings2 className="h-4 w-4 mr-2" /> Edit Route
-          </Button>
-          <Button size="sm" className="h-9 px-6 font-semibold bg-primary">
-            Export Manifest
-          </Button>
-        </div>
+
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
@@ -111,110 +157,147 @@ export default function RouteDetailsPage() {
               <Card className="border-border bg-card">
                  <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-2">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Live Load Factor</p>
-                       <Activity className="h-3.5 w-3.5 text-primary" />
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Active Trips</p>
+                       <Activity className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
                     </div>
-                    <p className="text-2xl font-bold">{routeData.loadFactor}%</p>
-                    <Progress value={routeData.loadFactor} className="h-1 mt-3 bg-muted" />
+                    <p className="text-2xl font-bold">{statistics.activeTrips} / {statistics.totalTrips}</p>
+                    <Progress value={statistics.totalTrips > 0 ? (statistics.activeTrips / statistics.totalTrips) * 100 : 0} className="h-1 mt-3 bg-muted" />
                  </CardContent>
               </Card>
               <Card className="border-border bg-card">
                  <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-2">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Active Vehicle</p>
-                       <Bus className="h-3.5 w-3.5 text-primary" />
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Bookings</p>
+                       <Users className="h-3.5 w-3.5 text-primary" />
                     </div>
-                    <p className="text-xl font-bold">{routeData.activeBus}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">{routeData.driver}</p>
+                    <p className="text-xl font-bold">{statistics.totalBookings}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">Tickets sold today</p>
                  </CardContent>
               </Card>
               <Card className="border-border bg-card">
                  <CardContent className="pt-6">
                     <div className="flex items-center justify-between mb-2">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Next Departure</p>
-                       <Clock className="h-3.5 w-3.5 text-primary" />
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Base Route Fare</p>
+                       <Zap className="h-3.5 w-3.5 text-primary" />
                     </div>
-                    <p className="text-2xl font-bold">{routeData.nextTrip}</p>
-                    <p className="text-[10px] text-emerald-600 mt-1 font-bold">ON TIME</p>
+                    <p className="text-2xl font-bold">₦{route.baseFare.toLocaleString()}</p>
+                    <p className="text-[10px] text-emerald-600 mt-1 font-bold">FLAT RATE</p>
                  </CardContent>
               </Card>
            </div>
 
-           <Tabs defaultValue="manifest" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-lg border border-border">
-                <TabsTrigger value="manifest" className="text-xs font-bold uppercase">Passenger Manifest</TabsTrigger>
-                <TabsTrigger value="timeline" className="text-xs font-bold uppercase">Route Timeline</TabsTrigger>
-                <TabsTrigger value="history" className="text-xs font-bold uppercase">Trip History</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="manifest" className="space-y-4 pt-4">
-                 <div className="grid gap-2">
-                    {routeData.manifest.map((passenger) => (
-                       <Card key={passenger.id} className="border-border bg-card hover:bg-muted/30 transition-colors">
-                          <div className="p-4 flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <Avatar className="h-9 w-9 border border-border">
-                                   <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{passenger.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                   <p className="text-sm font-bold leading-none">{passenger.name}</p>
-                                   <div className="flex items-center gap-2 mt-1.5">
-                                      <Badge variant="outline" className={`text-[8px] font-bold uppercase px-1 border-none ${
-                                         passenger.type === 'Priority' ? 'bg-indigo-500/10 text-indigo-600' :
-                                         passenger.type === 'Standard' ? 'bg-primary/10 text-primary' :
-                                         'bg-muted text-muted-foreground'
-                                      }`}>
-                                         {passenger.type}
-                                      </Badge>
-                                      <span className="text-[9px] font-semibold text-muted-foreground uppercase">Seat {passenger.seat}</span>
-                                   </div>
-                                </div>
-                             </div>
-                             <div className="flex items-center gap-3">
-                                <Badge variant="secondary" className={`text-[9px] font-bold uppercase ${
-                                   passenger.status === 'Boarded' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                                } border-none`}>
-                                   {passenger.status}
-                                </Badge>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                                   <ArrowUpRight className="h-4 w-4" />
-                                </Button>
-                             </div>
-                          </div>
-                       </Card>
-                    ))}
-                 </div>
-              </TabsContent>
+           <Tabs defaultValue="history" className="w-full">
+               <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg border border-border">
+                  <TabsTrigger value="history" className="text-xs font-bold uppercase">Trip History</TabsTrigger>
+                  <TabsTrigger value="schedule" className="text-xs font-bold uppercase">Schedule History</TabsTrigger>
+               </TabsList>
+               
+               <TabsContent value="history" className="pt-4">
+                  <Card className="border-border bg-card shadow-sm overflow-hidden">
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                           <thead className="bg-muted/50 text-muted-foreground border-b border-border">
+                              <tr>
+                                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest">Trip / Direction</th>
+                                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest">Departure Time & Date</th>
+                                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest">Pilot / Vehicle</th>
+                                 <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest">Status</th>
+                              </tr>
+                           </thead>
+                           <tbody className="divide-y divide-border/50">
+                              {tripHistory.length === 0 ? (
+                                <tr>
+                                  <td colSpan={4} className="text-center py-8 text-xs text-muted-foreground italic">No trip logs available for this corridor.</td>
+                                </tr>
+                              ) : (
+                                tripHistory.map((trip) => (
+                                   <tr key={trip.id} className="hover:bg-muted/10 transition-colors">
+                                      <td className="px-4 py-4">
+                                         <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground capitalize">{trip.direction} Trip</span>
+                                            <span className="text-[9px] text-muted-foreground mt-0.5 font-mono">{trip.id}</span>
+                                         </div>
+                                      </td>
+                                      <td className="px-4 py-4">
+                                         <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground">
+                                              {new Date(trip.tripDate).toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                                              {new Date(trip.tripDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
+                                            </span>
+                                         </div>
+                                      </td>
+                                      <td className="px-4 py-4">
+                                         <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground">{trip.driverName || "Demo Pilot"}</span>
+                                            <span className="text-[10px] text-muted-foreground mt-0.5">{trip.busName || "Demo Bus"}</span>
+                                         </div>
+                                      </td>
+                                      <td className="px-4 py-4 text-right">
+                                         <Badge variant="outline" className={`border-none font-black text-[9px] uppercase ${
+                                            trip.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' :
+                                            trip.status === 'completed' ? 'bg-slate-500/10 text-slate-600' : 'bg-amber-500/10 text-amber-600'
+                                         }`}>
+                                            {trip.status}
+                                         </Badge>
+                                      </td>
+                                   </tr>
+                                ))
+                              )}
+                           </tbody>
+                        </table>
+                     </div>
+                  </Card>
+               </TabsContent>
 
-              <TabsContent value="timeline" className="pt-4">
-                 <Card className="border-border bg-card p-6">
-                    <div className="relative pl-10 space-y-8">
-                       <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-muted rounded-full" />
-                       {routeData.stops.map((stop, i) => (
-                          <div key={i} className="relative flex items-center justify-between group">
-                             <div className={`absolute -left-10 h-5 w-5 rounded-full border-4 border-background z-10 ${
-                                stop.type === 'Pickup' ? 'bg-primary' : 
-                                stop.type === 'School Hub' ? 'bg-amber-500' : 
-                                'bg-slate-400'
-                             }`} />
-                             <div className="flex-1">
-                                <p className="text-sm font-bold">{stop.name}</p>
-                                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{stop.type}</p>
-                             </div>
-                             <Badge variant="outline" className="text-[10px] font-bold">{stop.time}</Badge>
-                          </div>
-                       ))}
-                    </div>
-                 </Card>
-              </TabsContent>
-
-              <TabsContent value="history" className="pt-4">
-                 <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed border-border rounded-xl text-center">
-                    <History className="h-8 w-8 text-muted-foreground opacity-20 mb-3" />
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Historical data processing...</p>
-                 </div>
-              </TabsContent>
-           </Tabs>
+               <TabsContent value="schedule" className="pt-4">
+                  <Card className="border-border bg-card shadow-sm overflow-hidden">
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                           <thead className="bg-muted/50 text-muted-foreground border-b border-border">
+                              <tr>
+                                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest">Schedule / Direction</th>
+                                 <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest">Time & Frequency</th>
+                                 <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest">Status</th>
+                              </tr>
+                           </thead>
+                           <tbody className="divide-y divide-border/50">
+                              {schedules.length === 0 ? (
+                                <tr>
+                                  <td colSpan={3} className="text-center py-8 text-xs text-muted-foreground italic">No schedule parameters established.</td>
+                                </tr>
+                              ) : (
+                                schedules.map((sch) => (
+                                   <tr key={sch.id} className="hover:bg-muted/10 transition-colors">
+                                      <td className="px-4 py-4">
+                                         <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground capitalize">{sch.direction} Corridor run</span>
+                                            <span className="text-[9px] text-muted-foreground font-mono mt-0.5">{sch.id}</span>
+                                         </div>
+                                      </td>
+                                      <td className="px-4 py-4">
+                                         <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-foreground">{sch.departureTime}</span>
+                                            <span className="text-[10px] text-muted-foreground mt-0.5">{sch.daysOfWeek.join(", ")}</span>
+                                         </div>
+                                      </td>
+                                      <td className="px-4 py-4 text-right">
+                                         <Badge variant="outline" className={`border-none font-black text-[9px] uppercase ${
+                                            sch.isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-muted-foreground'
+                                         }`}>
+                                            {sch.isActive ? 'Active' : 'Inactive'}
+                                         </Badge>
+                                      </td>
+                                   </tr>
+                                ))
+                              )}
+                           </tbody>
+                        </table>
+                     </div>
+                  </Card>
+               </TabsContent>
+            </Tabs>
         </div>
 
         {/* Right: Insights and Actions */}
@@ -223,51 +306,39 @@ export default function RouteDetailsPage() {
               <CardHeader className="border-b border-white/10 pb-4">
                  <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-xs font-bold uppercase tracking-wider">Live Route Logic</CardTitle>
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider">Live Corridor Logic</CardTitle>
                  </div>
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
-                 <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                       <ShieldCheck className="h-4 w-4 text-emerald-400 mt-0.5" />
-                       <div>
-                          <p className="text-xs font-bold">Priority Integrity</p>
-                          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-1">30% of seats are strictly held for Always On Seat members until 15 mins before departure.</p>
-                       </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                       <Navigation className="h-4 w-4 text-primary mt-0.5" />
-                       <div>
-                          <p className="text-xs font-bold">Dynamic ETA</p>
-                          <p className="text-[10px] text-slate-400 leading-relaxed font-medium mt-1">Real-time traffic processing indicates a +4 min delay at Gwarinpa Station.</p>
-                       </div>
+                 {/* Timeline of Stops */}
+                 <div className="space-y-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bus Stops Ordered</p>
+                    <div className="relative pl-6 border-l-2 border-primary/20 space-y-4 ml-1.5">
+                       {stopsList.map((stop, index) => (
+                          <div key={index} className="relative">
+                             {/* Indicator dot */}
+                             <span className="absolute -left-[30px] top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-primary bg-slate-950">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                             </span>
+                             <div>
+                                <p className="text-xs font-bold text-white">{stop.name}</p>
+                                <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                  Stop Order #{stop.order} • Fare contribution: ₦{stop.defaultFare}
+                                </p>
+                             </div>
+                          </div>
+                       ))}
                     </div>
                  </div>
+
                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
                     <div className="flex items-center gap-2">
                        <Info className="h-3.5 w-3.5 text-slate-400" />
                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Revenue Insight</p>
                     </div>
-                    <p className="text-xl font-bold tracking-tight">4,050 Credits</p>
-                    <p className="text-[9px] text-slate-500 font-medium">Projected revenue for current trip manifest.</p>
+                    <p className="text-xl font-bold tracking-tight">₦{projectedRevenue.toLocaleString()}</p>
+                    <p className="text-[9px] text-slate-500 font-medium">Estimated revenue for current bookings.</p>
                  </div>
-                 <Button className="w-full h-11 text-xs font-bold uppercase bg-primary hover:bg-primary/90 rounded-lg shadow-sm">
-                    View Live GPS Feed
-                 </Button>
-              </CardContent>
-           </Card>
-
-           <Card className="border-border bg-card rounded-xl shadow-sm">
-              <CardHeader className="pb-4">
-                 <CardTitle className="text-xs font-bold uppercase tracking-wider">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2">
-                 <Button variant="outline" className="w-full justify-start text-[11px] font-bold uppercase border-border">
-                    <User className="h-3.5 w-3.5 mr-2" /> Message All Boarded
-                 </Button>
-                 <Button variant="outline" className="w-full justify-start text-[11px] font-bold uppercase border-border">
-                    <Users className="h-3.5 w-3.5 mr-2" /> Transfer Manifest
-                 </Button>
               </CardContent>
            </Card>
         </div>

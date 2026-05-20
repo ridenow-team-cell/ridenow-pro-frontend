@@ -232,9 +232,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <Button variant="ghost" size="sm" className="text-xs font-bold gap-1 text-primary h-8" asChild>
-               <Link href="/dashboard/reports">
+              <Link href="/dashboard/reports">
                 Deep Audit <ArrowRight className="h-3 w-3" />
-               </Link>
+              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                   const initials = reg.fullName
                     ? reg.fullName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
                     : "?"
-                  
+
                   return (
                     <div key={reg.id || idx} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-3">
@@ -400,9 +400,9 @@ function DashboardSkeleton() {
     <div className="flex h-[80vh] w-full items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <img 
-            src="/logo.png" 
-            alt="RideNow Logo" 
+          <img
+            src="/logo.png"
+            alt="RydeNow Logo"
             className="h-24 w-auto object-contain animate-breathing"
           />
         </div>

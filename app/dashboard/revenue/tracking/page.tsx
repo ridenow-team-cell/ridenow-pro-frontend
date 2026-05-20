@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { 
-  ArrowRight, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Calendar, 
-  RefreshCw, 
-  FileText, 
-  PieChart, 
-  ArrowUpRight, 
+import {
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Calendar,
+  RefreshCw,
+  FileText,
+  PieChart,
+  ArrowUpRight,
   Download,
   CreditCard,
   Target
@@ -59,7 +59,7 @@ export default function RevenueTrackingPage() {
   }
 
   const { summary, revenueTrend, revenueByPlan } = data!
-  
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -200,29 +200,29 @@ export default function RevenueTrackingPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.4} />
-                  <XAxis 
-                    dataKey="day" 
-                    fontSize={11} 
-                    fontWeight={600} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    dy={10} 
-                    stroke="hsl(var(--muted-foreground))" 
+                  <XAxis
+                    dataKey="day"
+                    fontSize={11}
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                    stroke="hsl(var(--muted-foreground))"
                   />
-                  <YAxis 
-                    fontSize={11} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    stroke="hsl(var(--muted-foreground))" 
+                  <YAxis
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="hsl(var(--muted-foreground))"
                     tickFormatter={(v) => v >= 1000 ? `₦${v / 1000}k` : `₦${v}`}
                     domain={[revenueTrend.yAxis.min, revenueTrend.yAxis.max]}
                   />
                   <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))", 
-                      borderRadius: "12px", 
-                      fontSize: "12px", 
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "12px",
+                      fontSize: "12px",
                       boxShadow: "0 10px 30px -5px rgba(0,0,0,0.15)",
                       padding: "10px 14px"
                     }}
@@ -230,33 +230,33 @@ export default function RevenueTrackingPage() {
                     cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1.5, strokeDasharray: "4 4" }}
                     formatter={(val: number) => [formatCurrency(val), "Revenue"]}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#0066cc" 
-                    strokeWidth={3} 
-                    fill="url(#revenueGradient)" 
-                    dot={{ r: 4, fill: "#0066cc", strokeWidth: 2, stroke: "#fff" }} 
-                    activeDot={{ r: 6, strokeWidth: 0 }} 
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#0066cc"
+                    strokeWidth={3}
+                    fill="url(#revenueGradient)"
+                    dot={{ r: 4, fill: "#0066cc", strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
           <CardFooter className="border-t border-border/40 px-6 py-4 flex items-center justify-between bg-muted/5">
-             <div className="flex gap-10">
-                <div>
-                   <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Total Period</p>
-                   <p className="text-sm font-bold text-foreground">₦{revenueTrend.data.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString()}</p>
-                </div>
-                <div>
-                   <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Highest Peak</p>
-                   <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(...revenueTrend.data.map(d => d.revenue)))}</p>
-                </div>
-             </div>
-             <Button variant="ghost" size="sm" className="text-xs font-bold gap-1.5 text-primary group h-8">
-                View Detailed Ledger <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-             </Button>
+            <div className="flex gap-10">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Total Period</p>
+                <p className="text-sm font-bold text-foreground">₦{revenueTrend.data.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Highest Peak</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(Math.max(...revenueTrend.data.map(d => d.revenue)))}</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" className="text-xs font-bold gap-1.5 text-primary group h-8">
+              View Detailed Ledger <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Button>
           </CardFooter>
         </Card>
 
@@ -264,10 +264,10 @@ export default function RevenueTrackingPage() {
         <Card className="lg:col-span-4 border-border/60 shadow-sm bg-card/80 backdrop-blur-sm">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-               <CardTitle className="text-base font-bold">{revenueByPlan.title}</CardTitle>
-               <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest px-2 py-0 h-5 border-border/60">
-                  {revenueByPlan.activeFilter}
-               </Badge>
+              <CardTitle className="text-base font-bold">{revenueByPlan.title}</CardTitle>
+              <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest px-2 py-0 h-5 border-border/60">
+                {revenueByPlan.activeFilter}
+              </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{revenueByPlan.description}</p>
           </CardHeader>
@@ -283,7 +283,7 @@ export default function RevenueTrackingPage() {
                     <span className="text-xs font-mono font-bold">{formatCurrency(item.revenue)}</span>
                   </div>
                   <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`absolute h-full rounded-full transition-all duration-1000 ${item.color}`}
                       style={{ width: `${item.progress}%` }}
                     />
@@ -318,9 +318,9 @@ function RevenueLoadingScreen() {
     <div className="flex h-[80vh] w-full items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <img 
-            src="/logo.png" 
-            alt="RideNow Logo" 
+          <img
+            src="/logo.png"
+            alt="RydeNow Logo"
             className="h-24 w-auto object-contain animate-breathing"
           />
         </div>

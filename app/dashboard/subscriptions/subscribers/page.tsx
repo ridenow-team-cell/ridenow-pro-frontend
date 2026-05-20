@@ -2,13 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  User as UserIcon, 
-  Clock, 
-  ShieldAlert, 
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  User as UserIcon,
+  Clock,
+  ShieldAlert,
   CheckCircle2,
   XCircle,
   Mail,
@@ -69,7 +69,7 @@ export default function SubscriberListPage() {
     const userEmail = sub.user?.email?.toLowerCase() || ""
     const subId = sub.id?.toLowerCase() || ""
     const search = searchTerm.toLowerCase()
-    
+
     return userName.includes(search) || userEmail.includes(search) || subId.includes(search)
   })
 
@@ -120,20 +120,20 @@ export default function SubscriberListPage() {
 
       {/* Search & Filter */}
       <div className="flex items-center justify-between gap-4">
-         <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-               placeholder="Search by name, email, or ID..." 
-               className="pl-9 h-10 bg-card/50 border-border/50 text-sm"
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-            />
-         </div>
-         <div className="flex items-center gap-2">
-            <Button variant="outline" className="h-10 border-border/50 gap-2 font-medium text-sm">
-               <Filter className="h-4 w-4" /> Filter
-            </Button>
-         </div>
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email, or ID..."
+            className="pl-9 h-10 bg-card/50 border-border/50 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="h-10 border-border/50 gap-2 font-medium text-sm">
+            <Filter className="h-4 w-4" /> Filter
+          </Button>
+        </div>
       </div>
 
       {/* Subscribers Table */}
@@ -181,14 +181,14 @@ export default function SubscriberListPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between w-24">
-                           <span className="text-[10px] font-bold">{sub.remainingCredits.toLocaleString()}</span>
-                           <span className="text-[9px] text-muted-foreground opacity-60">/ {sub.totalCredits.toLocaleString()}</span>
+                          <span className="text-[10px] font-bold">{sub.remainingCredits.toLocaleString()}</span>
+                          <span className="text-[9px] text-muted-foreground opacity-60">/ {sub.totalCredits.toLocaleString()}</span>
                         </div>
                         <div className="h-1 w-24 bg-muted rounded-full overflow-hidden">
-                           <div 
-                              className="h-full bg-primary transition-all duration-500" 
-                              style={{ width: `${(sub.remainingCredits / sub.totalCredits) * 100}%` }}
-                           />
+                          <div
+                            className="h-full bg-primary transition-all duration-500"
+                            style={{ width: `${(sub.remainingCredits / sub.totalCredits) * 100}%` }}
+                          />
                         </div>
                       </div>
                     </td>
@@ -207,7 +207,7 @@ export default function SubscriberListPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/dashboard/subscriptions/subscribers/${sub.id}`}>
                           <Button variant="outline" size="sm" className="h-8 px-3 text-[10px] font-bold uppercase tracking-widest gap-1.5 border-border/60">
-                             View Details <ArrowUpRight className="h-3 w-3" />
+                            View Details <ArrowUpRight className="h-3 w-3" />
                           </Button>
                         </Link>
                         <DropdownMenu>
@@ -242,9 +242,9 @@ export default function SubscriberListPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-24 text-center">
                     <div className="flex flex-col items-center justify-center opacity-30">
-                       <Users className="h-12 w-12 mb-4" />
-                       <p className="text-sm font-bold uppercase tracking-widest mb-1">No subscribers found</p>
-                       <p className="text-xs">Your active subscription pool will appear here</p>
+                      <Users className="h-12 w-12 mb-4" />
+                      <p className="text-sm font-bold uppercase tracking-widest mb-1">No subscribers found</p>
+                      <p className="text-xs">Your active subscription pool will appear here</p>
                     </div>
                   </td>
                 </tr>
@@ -253,11 +253,11 @@ export default function SubscriberListPage() {
           </table>
         </div>
         <div className="p-4 bg-muted/20 border-t border-border/40 flex items-center justify-between">
-           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Live Subscriber Stream • Total: {data.length}</p>
-           <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest" disabled>Prev</Button>
-              <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest">Next</Button>
-           </div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Live Subscriber Stream • Total: {data.length}</p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest" disabled>Prev</Button>
+            <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest">Next</Button>
+          </div>
         </div>
       </Card>
     </div>
@@ -268,9 +268,9 @@ function SubscriberLoadingScreen() {
   return (
     <div className="flex h-[80vh] w-full items-center justify-center">
       <div className="flex flex-col items-center gap-6">
-        <img 
-          src="/logo.png" 
-          alt="RideNow Logo" 
+        <img
+          src="/logo.png"
+          alt="RydeNow Logo"
           className="h-24 w-auto object-contain animate-breathing"
         />
         <div className="flex flex-col items-center gap-2">

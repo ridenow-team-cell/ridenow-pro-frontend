@@ -117,42 +117,7 @@ export default function AccessControlPage() {
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-           <Card className="border-border bg-card">
-              <CardHeader className="border-b border-border pb-4">
-                 <CardTitle className="text-base font-bold">Recent Blocked Events</CardTitle>
-                 <CardDescription className="text-xs">Failed validation attempts in the last 15 minutes.</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                 <div className="space-y-4">
-                    {[
-                       { user: "Leo Valdez", reason: "Expired Sub", bus: "BUS-202", time: "Just now" },
-                       { user: "Piper McLean", reason: "Zone Mismatch", bus: "BUS-105", time: "4m ago" },
-                       { user: "Jason Grace", reason: "Payment Issue", bus: "BUS-404", time: "12m ago" },
-                    ].map((event, i) => (
-                       <div key={i} className="flex items-center justify-between p-3 border border-border bg-rose-50 hover:bg-rose-100/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                             <div className="h-8 w-8 rounded bg-rose-100 flex items-center justify-center text-rose-600">
-                                <XCircle className="h-4 w-4" />
-                             </div>
-                             <div>
-                                <p className="text-xs font-bold leading-none">{event.user}</p>
-                                <p className="text-[9px] text-rose-700 font-black mt-1.5 uppercase tracking-widest">{event.reason}</p>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[10px] font-bold text-muted-foreground uppercase">{event.bus}</p>
-                             <p className="text-[10px] text-muted-foreground font-medium mt-1">{event.time}</p>
-                          </div>
-                       </div>
-                    ))}
-                    <Button variant="ghost" className="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-transparent">
-                       Review Security Escalations <ArrowRight className="ml-2 h-3.5 w-3.5" />
-                    </Button>
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="border-border bg-card overflow-hidden">
+            <Card className="border-border bg-card overflow-hidden">
               <CardHeader className="border-b border-border pb-4">
                  <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />

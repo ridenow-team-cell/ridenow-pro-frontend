@@ -2,16 +2,16 @@
 
 import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { 
-  ChevronLeft, 
-  Zap, 
-  Shield, 
-  ZapOff, 
-  CreditCard, 
-  Users, 
-  Clock, 
-  Armchair, 
-  Bell, 
+import {
+  ChevronLeft,
+  Zap,
+  Shield,
+  ZapOff,
+  CreditCard,
+  Users,
+  Clock,
+  Armchair,
+  Bell,
   Check,
   Plus,
   ArrowRight,
@@ -39,10 +39,10 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  getSubscriptionPlans, 
-  getSubscriptionPlan, 
-  createSubscriptionPlan, 
+import {
+  getSubscriptionPlans,
+  getSubscriptionPlan,
+  createSubscriptionPlan,
   updateSubscriptionPlan,
   type SubscriptionPlan,
   type CreatePlanRequest
@@ -70,7 +70,7 @@ export default function NewCreditPlanPage() {
   const [isLoadingPresets, setIsLoadingPresets] = React.useState(true)
   const [selectedPresetId, setSelectedPresetId] = React.useState<string | null>(null)
   const [isPublishing, setIsPublishing] = React.useState(false)
-  
+
   const [form, setForm] = React.useState({
     id: "",
     name: "",
@@ -93,21 +93,21 @@ export default function NewCreditPlanPage() {
         const res = await getSubscriptionPlans()
         if (res.success && res.data) {
           setPresets(res.data)
-          
+
           // If editing or if we have plans, select the first one as preset
           if (editId) {
-             const planToEdit = res.data.find(p => p.id === editId)
-             if (planToEdit) {
-                populateFormFromPlan(planToEdit)
-             } else {
-                // Fetch specifically if not in active list
-                const singleRes = await getSubscriptionPlan(editId)
-                if (singleRes.success && singleRes.data) {
-                   populateFormFromPlan(singleRes.data)
-                }
-             }
+            const planToEdit = res.data.find(p => p.id === editId)
+            if (planToEdit) {
+              populateFormFromPlan(planToEdit)
+            } else {
+              // Fetch specifically if not in active list
+              const singleRes = await getSubscriptionPlan(editId)
+              if (singleRes.success && singleRes.data) {
+                populateFormFromPlan(singleRes.data)
+              }
+            }
           } else if (res.data.length > 0) {
-             // populateFormFromPlan(res.data[0])
+            // populateFormFromPlan(res.data[0])
           }
         }
       } catch (err) {
@@ -122,7 +122,7 @@ export default function NewCreditPlanPage() {
   const populateFormFromPlan = (plan: SubscriptionPlan) => {
     setSelectedPresetId(plan.id)
     const firstOption = plan.pricingOptions[0] || { price: 0, baseCredit: 0, bonusPercentage: 0 }
-    
+
     setForm({
       id: plan.id,
       name: plan.planName,
@@ -169,7 +169,7 @@ export default function NewCreditPlanPage() {
   const handlePublish = async () => {
     try {
       setIsPublishing(true)
-      
+
       const payload: CreatePlanRequest = {
         planName: form.name,
         description: form.description,
@@ -220,9 +220,9 @@ export default function NewCreditPlanPage() {
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => router.back()}
               className="rounded-full"
             >
@@ -230,18 +230,18 @@ export default function NewCreditPlanPage() {
             </Button>
             <div>
               <h1 className="text-lg font-bold tracking-tight">{form.id ? "Edit Credit Plan" : "Create Credit Plan"}</h1>
-              <p className="text-xs text-muted-foreground font-medium">{form.id ? "Update existing plan properties" : "Design a custom RideNow credit offering"}</p>
+              <p className="text-xs text-muted-foreground font-medium">{form.id ? "Update existing plan properties" : "Design a custom RydeNow credit offering"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" className="font-bold uppercase tracking-wider text-[10px] h-8" disabled={isPublishing}>
               Save Draft
             </Button>
-            <Button 
-               size="sm" 
-               className="font-bold uppercase tracking-wider text-[10px] h-8 bg-primary" 
-               onClick={handlePublish}
-               disabled={isPublishing}
+            <Button
+              size="sm"
+              className="font-bold uppercase tracking-wider text-[10px] h-8 bg-primary"
+              onClick={handlePublish}
+              disabled={isPublishing}
             >
               {isPublishing ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
               {form.id ? "Update Plan" : "Publish Plan"}
@@ -252,30 +252,29 @@ export default function NewCreditPlanPage() {
 
       <main className="container mx-auto pt-8 px-4">
         <div className="grid gap-8 lg:grid-cols-12">
-          
+
           {/* Left Column: Editor */}
           <div className="lg:col-span-8 space-y-8">
-            
+
             {/* Presets */}
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Select a Base Preset</h2>
               </div>
-              
+
               <div className="grid gap-4 md:grid-cols-3">
                 {isLoadingPresets ? (
-                   [1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />)
+                  [1, 2, 3].map(i => <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />)
                 ) : (
                   presets.map((plan) => (
                     <button
                       key={plan.id}
                       onClick={() => handlePresetSelect(plan)}
-                      className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 hover:shadow-lg ${
-                        selectedPresetId === plan.id 
-                          ? "border-primary bg-primary/5 shadow-md" 
-                          : "border-border bg-card hover:border-primary/50"
-                      }`}
+                      className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 hover:shadow-lg ${selectedPresetId === plan.id
+                        ? "border-primary bg-primary/5 shadow-md"
+                        : "border-border bg-card hover:border-primary/50"
+                        }`}
                     >
                       {selectedPresetId === plan.id && (
                         <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-sm animate-in zoom-in-50">
@@ -283,39 +282,39 @@ export default function NewCreditPlanPage() {
                         </div>
                       )}
                       <div className="flex items-center justify-between mb-2">
-                         <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-                            <CreditCard className="h-4 w-4" />
-                         </div>
-                         <Badge variant="outline" className="text-[9px] font-bold border-primary/30 text-primary">
-                            ₦{plan.pricingOptions[0]?.price.toLocaleString() || "0"}
-                         </Badge>
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+                          <CreditCard className="h-4 w-4" />
+                        </div>
+                        <Badge variant="outline" className="text-[9px] font-bold border-primary/30 text-primary">
+                          ₦{plan.pricingOptions[0]?.price.toLocaleString() || "0"}
+                        </Badge>
                       </div>
                       <p className="font-bold text-sm truncate">{plan.planName}</p>
                       <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{plan.description}</p>
                     </button>
                   ))
                 )}
-                <button 
-                   onClick={() => {
-                      setSelectedPresetId(null)
-                      setForm({
-                         id: "",
-                         name: "New Plan",
-                         description: "",
-                         price: "0",
-                         credits: "0",
-                         bonus: "0",
-                         customFeatures: [],
-                         includedFeatures: [],
-                         selectedAddOns: [],
-                         isActive: true,
-                         color: COLORS[0]
-                      })
-                   }}
-                   className="p-4 rounded-2xl border-2 border-dashed border-border bg-transparent flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                <button
+                  onClick={() => {
+                    setSelectedPresetId(null)
+                    setForm({
+                      id: "",
+                      name: "New Plan",
+                      description: "",
+                      price: "0",
+                      credits: "0",
+                      bonus: "0",
+                      customFeatures: [],
+                      includedFeatures: [],
+                      selectedAddOns: [],
+                      isActive: true,
+                      color: COLORS[0]
+                    })
+                  }}
+                  className="p-4 rounded-2xl border-2 border-dashed border-border bg-transparent flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
                 >
-                   <Plus className="h-5 w-5 text-muted-foreground" />
-                   <span className="text-xs font-bold text-muted-foreground">Blank Slate</span>
+                  <Plus className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-xs font-bold text-muted-foreground">Blank Slate</span>
                 </button>
               </div>
             </section>
@@ -326,13 +325,13 @@ export default function NewCreditPlanPage() {
                 <Wallet className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-bold uppercase tracking-widest">Plan Identity & Economics</h2>
               </div>
-              
+
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Plan Name</Label>
-                  <Input 
-                    value={form.name} 
-                    onChange={e => setForm({...form, name: e.target.value})}
+                  <Input
+                    value={form.name}
+                    onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="e.g. Weekly Pro"
                     className="h-11 bg-muted/20 border-border focus:ring-primary text-sm font-medium"
                   />
@@ -341,9 +340,9 @@ export default function NewCreditPlanPage() {
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Price (₦)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-muted-foreground font-bold">₦</span>
-                    <Input 
-                      value={form.price} 
-                      onChange={e => setForm({...form, price: e.target.value})}
+                    <Input
+                      value={form.price}
+                      onChange={e => setForm({ ...form, price: e.target.value })}
                       type="number"
                       className="h-11 pl-8 bg-muted/20 border-border focus:ring-primary text-sm font-bold"
                     />
@@ -354,9 +353,9 @@ export default function NewCreditPlanPage() {
               <div className="grid gap-6 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Base Credits</Label>
-                  <Input 
-                    value={form.credits} 
-                    onChange={e => setForm({...form, credits: e.target.value})}
+                  <Input
+                    value={form.credits}
+                    onChange={e => setForm({ ...form, credits: e.target.value })}
                     type="number"
                     className="h-11 bg-muted/20 border-border"
                   />
@@ -364,9 +363,9 @@ export default function NewCreditPlanPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Bonus Credits (%)</Label>
                   <div className="relative">
-                    <Input 
-                      value={form.bonus} 
-                      onChange={e => setForm({...form, bonus: e.target.value})}
+                    <Input
+                      value={form.bonus}
+                      onChange={e => setForm({ ...form, bonus: e.target.value })}
                       type="number"
                       className="h-11 pr-8 bg-muted/20 border-border"
                     />
@@ -374,30 +373,30 @@ export default function NewCreditPlanPage() {
                   </div>
                 </div>
                 <div className="flex flex-col justify-end p-3 rounded-xl bg-primary/5 border border-primary/20">
-                   <p className="text-[10px] font-bold text-primary uppercase tracking-tighter mb-1">Total Value</p>
-                   <p className="text-lg font-black text-primary leading-none">{finalCredits.toLocaleString()} <span className="text-[10px] font-bold opacity-70">CREDITS</span></p>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-tighter mb-1">Total Value</p>
+                  <p className="text-lg font-black text-primary leading-none">{finalCredits.toLocaleString()} <span className="text-[10px] font-bold opacity-70">CREDITS</span></p>
                 </div>
               </div>
 
               <div className="space-y-2 pt-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
-                  <Input 
-                    value={form.description} 
-                    onChange={e => setForm({...form, description: e.target.value})}
-                    placeholder="Short summary of the plan's value proposition"
-                    className="h-11 bg-muted/20 border-border"
-                  />
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
+                <Input
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Short summary of the plan's value proposition"
+                  className="h-11 bg-muted/20 border-border"
+                />
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/50">
-                 <div className="space-y-0.5">
-                    <p className="text-sm font-bold">Active Status</p>
-                    <p className="text-[10px] text-muted-foreground">If disabled, this plan won't be visible to users.</p>
-                 </div>
-                 <Switch 
-                   checked={form.isActive}
-                   onCheckedChange={(val) => setForm({...form, isActive: val})}
-                 />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-bold">Active Status</p>
+                  <p className="text-[10px] text-muted-foreground">If disabled, this plan won't be visible to users.</p>
+                </div>
+                <Switch
+                  checked={form.isActive}
+                  onCheckedChange={(val) => setForm({ ...form, isActive: val })}
+                />
               </div>
             </section>
 
@@ -408,34 +407,34 @@ export default function NewCreditPlanPage() {
                   <BadgePercent className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-bold uppercase tracking-widest">Included Features</h2>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="text-[10px] font-bold uppercase text-primary h-7"
                   onClick={handleAddFeature}
                 >
                   <Plus className="h-3 w-3 mr-1" /> Add Custom
                 </Button>
               </div>
-              
+
               <div className="grid gap-3 md:grid-cols-2">
                 {form.customFeatures.map((feature, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/50 group">
                     <div className="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
                       <Check className="h-3 w-3" />
                     </div>
-                    <Input 
-                      value={feature} 
+                    <Input
+                      value={feature}
                       onChange={e => {
                         const newFeatures = [...form.customFeatures]
                         newFeatures[i] = e.target.value
-                        setForm({...form, customFeatures: newFeatures})
+                        setForm({ ...form, customFeatures: newFeatures })
                       }}
                       className="h-8 bg-transparent border-none p-0 text-xs font-medium focus-visible:ring-0"
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => handleRemoveFeature(i)}
                     >
@@ -448,24 +447,22 @@ export default function NewCreditPlanPage() {
 
             {/* Add-ons Configuration */}
             <section className="space-y-4">
-               <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Plus className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Available Add-ons</h2>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {ADD_ONS.map((addon) => (
-                  <div 
-                    key={addon.id} 
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
-                      form.selectedAddOns.includes(addon.id) 
-                        ? "border-primary bg-primary/5 shadow-sm" 
-                        : "border-border bg-card"
-                    }`}
+                  <div
+                    key={addon.id}
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${form.selectedAddOns.includes(addon.id)
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border bg-card"
+                      }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                        form.selectedAddOns.includes(addon.id) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                      }`}>
+                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${form.selectedAddOns.includes(addon.id) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        }`}>
                         <addon.icon className="h-5 w-5" />
                       </div>
                       <div>
@@ -474,7 +471,7 @@ export default function NewCreditPlanPage() {
                         <p className="text-[11px] font-black text-primary mt-1">₦{addon.price.toLocaleString()}/mo</p>
                       </div>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={form.selectedAddOns.includes(addon.id)}
                       onCheckedChange={() => toggleAddOn(addon.id)}
                     />
@@ -491,15 +488,15 @@ export default function NewCreditPlanPage() {
                 <Smartphone className="h-4 w-4 text-muted-foreground" />
                 <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Live App Preview</h2>
               </div>
-              
+
               {/* Phone Frame */}
               <div className="relative w-[320px] h-[640px] bg-zinc-950 rounded-[3rem] border-[8px] border-zinc-900 shadow-2xl overflow-hidden">
                 {/* Notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-zinc-900 rounded-b-2xl z-20" />
-                
+
                 {/* App Content */}
                 <div className="h-full w-full bg-background overflow-y-auto no-scrollbar pt-10 pb-6 px-5 space-y-6">
-                  
+
                   {/* App Header */}
                   <div className="flex items-center justify-between">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -510,7 +507,7 @@ export default function NewCreditPlanPage() {
                   </div>
 
                   {/* Plan Card Preview */}
-                  <motion.div 
+                  <motion.div
                     layout
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -520,7 +517,7 @@ export default function NewCreditPlanPage() {
                     {/* Abstract background shape */}
                     <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-white/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-[-10%] left-[-10%] w-32 h-32 bg-black/10 rounded-full blur-2xl" />
-                    
+
                     <div className="relative z-10 flex flex-col gap-6">
                       <div className="flex justify-between items-start text-white">
                         <div>
@@ -540,13 +537,13 @@ export default function NewCreditPlanPage() {
                       <Separator className="bg-white/20" />
 
                       <div className="flex items-center justify-between">
-                         <div className="text-white">
-                            <p className="text-[9px] font-bold opacity-70 uppercase mb-0.5">Price</p>
-                            <p className="text-lg font-black leading-none">₦{parseInt(form.price || "0").toLocaleString()}</p>
-                         </div>
-                         <div className="px-3 py-1.5 rounded-full bg-white text-[10px] font-black tracking-widest uppercase" style={{ color: form.color }}>
-                            {parseInt(form.bonus || "0") > 0 ? `+${form.bonus}% Bonus` : "Standard"}
-                         </div>
+                        <div className="text-white">
+                          <p className="text-[9px] font-bold opacity-70 uppercase mb-0.5">Price</p>
+                          <p className="text-lg font-black leading-none">₦{parseInt(form.price || "0").toLocaleString()}</p>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-full bg-white text-[10px] font-black tracking-widest uppercase" style={{ color: form.color }}>
+                          {parseInt(form.bonus || "0") > 0 ? `+${form.bonus}% Bonus` : "Standard"}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -571,26 +568,26 @@ export default function NewCreditPlanPage() {
                   {/* Add-ons in App */}
                   {form.selectedAddOns.length > 0 && (
                     <div className="space-y-3 pt-2">
-                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Active Add-ons</p>
-                       {form.selectedAddOns.map((id) => {
-                         const addon = ADD_ONS.find(a => a.id === id)
-                         if (!addon) return null
-                         return (
-                           <div key={id} className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/50">
-                              <div className="flex items-center gap-3">
-                                 <addon.icon className="h-3.5 w-3.5 text-primary" />
-                                 <p className="text-[11px] font-bold">{addon.name}</p>
-                              </div>
-                              <p className="text-[10px] font-black text-primary">₦{addon.price}</p>
-                           </div>
-                         )
-                       })}
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Active Add-ons</p>
+                      {form.selectedAddOns.map((id) => {
+                        const addon = ADD_ONS.find(a => a.id === id)
+                        if (!addon) return null
+                        return (
+                          <div key={id} className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/50">
+                            <div className="flex items-center gap-3">
+                              <addon.icon className="h-3.5 w-3.5 text-primary" />
+                              <p className="text-[11px] font-bold">{addon.name}</p>
+                            </div>
+                            <p className="text-[10px] font-black text-primary">₦{addon.price}</p>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 
                   {/* Purchase Button */}
                   <div className="pt-4">
-                    <Button 
+                    <Button
                       className="w-full h-12 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
                       style={{ backgroundColor: form.color }}
                     >
@@ -602,16 +599,16 @@ export default function NewCreditPlanPage() {
 
               {/* Summary Stats */}
               <div className="mt-8 grid grid-cols-2 gap-4 w-full">
-                 <div className="p-4 rounded-3xl bg-card border border-border text-center">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Cost / Trip</p>
-                    <p className="text-sm font-black">₦{finalCredits > 0 ? Math.round(parseInt(form.price || "0") / (finalCredits / 500)) : 0}</p>
-                    <p className="text-[8px] text-muted-foreground mt-0.5 italic">Estimated</p>
-                 </div>
-                 <div className="p-4 rounded-3xl bg-card border border-border text-center">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Daily Capacity</p>
-                    <p className="text-sm font-black">{Math.floor(finalCredits / 500)}</p>
-                    <p className="text-[8px] text-muted-foreground mt-0.5 italic">Total Trips</p>
-                 </div>
+                <div className="p-4 rounded-3xl bg-card border border-border text-center">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Cost / Trip</p>
+                  <p className="text-sm font-black">₦{finalCredits > 0 ? Math.round(parseInt(form.price || "0") / (finalCredits / 500)) : 0}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5 italic">Estimated</p>
+                </div>
+                <div className="p-4 rounded-3xl bg-card border border-border text-center">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Daily Capacity</p>
+                  <p className="text-sm font-black">{Math.floor(finalCredits / 500)}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5 italic">Total Trips</p>
+                </div>
               </div>
             </div>
           </div>
