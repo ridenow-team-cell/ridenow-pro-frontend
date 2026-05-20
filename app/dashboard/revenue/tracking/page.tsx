@@ -228,7 +228,7 @@ export default function RevenueTrackingPage() {
                     }}
                     itemStyle={{ fontWeight: 800, color: "hsl(var(--primary))" }}
                     cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1.5, strokeDasharray: "4 4" }}
-                    formatter={(val: number) => [formatCurrency(val), "Revenue"]}
+                    formatter={(val: any) => [formatCurrency(Number(val) || 0), "Revenue"]}
                   />
                   <Area
                     type="monotone"
