@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: "/api/proxy/:path*",
-        destination: "https://ridenow-pro-api.onrender.com/api/v1/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "https://ridenow-pro-api.onrender.com/api/v1"}/:path*`,
       },
     ]
   },

@@ -27,7 +27,8 @@ import {
   Map,
   Activity,
   Navigation,
-  PlusCircle
+  PlusCircle,
+  Coins
 } from "lucide-react"
 
 import {
@@ -82,6 +83,23 @@ const data = {
           title: "Billing Engine",
           url: "/dashboard/revenue/billing",
           icon: Cpu,
+        },
+      ],
+    },
+    {
+      title: "Manage Wallets",
+      url: "/dashboard/wallets",
+      icon: Coins,
+      items: [
+        {
+          title: "Wallet Overview",
+          url: "/dashboard/wallets",
+          icon: Wallet,
+        },
+        {
+          title: "Transactions",
+          url: "/dashboard/wallets/transactions",
+          icon: ClipboardList,
         },
       ],
     },
@@ -154,11 +172,11 @@ const data = {
       url: "/dashboard/users",
       icon: Users,
     },
-    {
-      title: "Pricing & Plans",
-      url: "/dashboard/pricing",
-      icon: Tag,
-    },
+    // {
+    //   title: "Pricing & Plans",
+    //   url: "/dashboard/pricing",
+    //   icon: Tag,
+    // },
     {
       title: "Compliance & Risk",
       url: "/dashboard/compliance",

@@ -611,7 +611,7 @@ export default function AddRoutePage() {
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider">Corridor Fare Configuration</CardTitle>
                 </div>
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] font-bold">
-                  CRD Price Matrix
+                  ₦ Price Matrix
                 </Badge>
               </div>
               <CardDescription className="text-[11px] text-muted-foreground font-medium mt-1">
@@ -623,7 +623,7 @@ export default function AddRoutePage() {
                 {/* Left Column: Interactive Input & Presets */}
                 <div className="md:col-span-7 space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold text-slate-700">Base Corridor Fare (CRD)</Label>
+                    <Label className="text-xs font-bold text-slate-700">Base Corridor Fare (₦)</Label>
                     <div className="relative">
                       <Input
                         type="number"
@@ -633,8 +633,8 @@ export default function AddRoutePage() {
                         placeholder="e.g. 500"
                         disabled={isSubmitting}
                       />
-                      <span className="absolute left-3 top-3.5 text-xs font-bold text-muted-foreground">C</span>
-                      <span className="absolute right-3 top-3.5 text-[9px] font-bold text-muted-foreground uppercase">CRD</span>
+                      <span className="absolute left-3 top-3.5 text-xs font-bold text-muted-foreground">₦</span>
+                      <span className="absolute right-3 top-3.5 text-[9px] font-bold text-muted-foreground uppercase">₦</span>
                     </div>
                   </div>
 
@@ -652,7 +652,7 @@ export default function AddRoutePage() {
                           className="h-8 text-xs font-bold px-3 rounded-lg"
                           disabled={isSubmitting}
                         >
-                          CRD{preset}
+                          ₦{preset}
                         </Button>
                       ))}
                     </div>
