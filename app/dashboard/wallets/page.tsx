@@ -65,7 +65,7 @@ export default function ManageWalletsPage() {
   const [wallets, setWallets] = React.useState<WalletData[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
-  
+
   // Balance adjustment dialog state
   const [selectedWallet, setSelectedWallet] = React.useState<WalletData | null>(null)
   const [isAdjustOpen, setIsAdjustOpen] = React.useState(false)
@@ -137,16 +137,16 @@ export default function ManageWalletsPage() {
     try {
       setIsSubmitting(true)
       const res = await adjustWalletBalance(selectedWallet.userId, Number(adjustAmount), adjustType)
-      
+
       if (res.success && res.data) {
         toast.success(res.message)
         setIsAdjustOpen(false)
-        
+
         // Refresh local items
         setWallets((prev) =>
           prev.map((w) => (w.id === selectedWallet.id ? res.data! : w))
         )
-        
+
         // Reload analytics for updated balances
         const analyticsRes = await getWalletAnalytics()
         if (analyticsRes.success && analyticsRes.data) {
@@ -426,9 +426,9 @@ export default function ManageWalletsPage() {
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Last Transaction
                   </th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">
+                  {/* <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">
                     Actions
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -465,11 +465,10 @@ export default function ManageWalletsPage() {
                         <Badge
                           variant="outline"
                           onClick={() => handleToggleStatus(item)}
-                          className={`text-[9px] font-bold border-none px-2 h-5 cursor-pointer ${
-                            item.status === "Active"
-                              ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
-                          }`}
+                          className={`text-[9px] font-bold border-none px-2 h-5 cursor-pointer ${item.status === "Active"
+                            ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+                            }`}
                         >
                           {item.status.toUpperCase()}
                         </Badge>
@@ -477,12 +476,12 @@ export default function ManageWalletsPage() {
                       <td className="px-6 py-4 text-xs text-muted-foreground">
                         {item.lastTransactionDate
                           ? new Date(item.lastTransactionDate).toLocaleString([], {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
                           : "N/A"}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      {/* <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             size="sm"
@@ -493,7 +492,7 @@ export default function ManageWalletsPage() {
                             Adjust Balance
                           </Button>
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 ) : (
@@ -599,7 +598,7 @@ export default function ManageWalletsPage() {
                   <span className="font-bold text-foreground">
                     {formatCurrency(
                       selectedWallet.balance +
-                        (adjustType === "credit" ? Number(adjustAmount || 0) : -Number(adjustAmount || 0))
+                      (adjustType === "credit" ? Number(adjustAmount || 0) : -Number(adjustAmount || 0))
                     )}
                   </span>
                 </div>
