@@ -136,7 +136,7 @@ export default function ManageWalletsPage() {
 
     try {
       setIsSubmitting(true)
-      const res = await adjustWalletBalance(selectedWallet.id, Number(adjustAmount), adjustType)
+      const res = await adjustWalletBalance(selectedWallet.userId, Number(adjustAmount), adjustType)
       
       if (res.success && res.data) {
         toast.success(res.message)
@@ -170,7 +170,7 @@ export default function ManageWalletsPage() {
     }
 
     try {
-      const res = await toggleWalletStatus(wallet.id)
+      const res = await toggleWalletStatus(wallet.userId)
       if (res.success && res.data) {
         toast.success(res.message)
         setWallets((prev) =>
@@ -193,11 +193,14 @@ export default function ManageWalletsPage() {
     }).format(val)
   }
 
-  if (isLoading && !analytics) {
+  if (isLoading) {
     return <WalletLoadingScreen />
   }
 
-  const { platformBalance, amountSpent, activeWallets, spendingStats } = analytics!
+  const platformBalance = analytics?.platformBalance ?? 0
+  const amountSpent = analytics?.amountSpent ?? 0
+  const activeWallets = analytics?.activeWallets ?? 0
+  const spendingStats = analytics?.spendingStats ?? []
 
   return (
     <div className="space-y-7 pt-2 pb-12 px-6">
@@ -434,11 +437,11 @@ export default function ManageWalletsPage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 border border-border/60">
                             <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                              {item.userName
+                              {(item.userName || "")
                                 .split(" ")
                                 .filter(Boolean)
                                 .map((n) => n[0])
-                                .join("")}
+                                .join("") || "?"}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
@@ -470,10 +473,12 @@ export default function ManageWalletsPage() {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-xs text-muted-foreground">
-                        {new Date(item.lastTransactionDate).toLocaleString([], {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
+                        {item.lastTransactionDate
+                          ? new Date(item.lastTransactionDate).toLocaleString([], {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : "N/A"}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
