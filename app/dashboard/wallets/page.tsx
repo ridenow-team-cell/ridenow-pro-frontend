@@ -157,7 +157,8 @@ export default function ManageWalletsPage() {
       }
     } catch (err) {
       console.error("Balance adjustment error:", err)
-      toast.error("An error occurred during adjustment")
+      const msg = err instanceof Error ? err.message : "An error occurred during adjustment"
+      toast.error(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -181,7 +182,8 @@ export default function ManageWalletsPage() {
       }
     } catch (err) {
       console.error("Error toggling status:", err)
-      toast.error("An error occurred while updating status")
+      const msg = err instanceof Error ? err.message : "An error occurred while updating status"
+      toast.error(msg)
     }
   }
 
