@@ -778,19 +778,107 @@ export default function FleetSchedulesPage() {
                                         return s.daysOfWeek && s.daysOfWeek.includes(dayOfWeekName)
                                       })
 
+                                      // Precompute top, height and end for each schedule item
+                                      const computedSchedules = daySchedules.map(item => {
+                                        const start24 = convertTo24Hour(item.departureTime)
+                                        const end24 = getEndTimeFor24h(start24)
+
+                                        const [sh, sm] = start24.split(":").map(Number)
+                                        const [eh, em] = end24.split(":").map(Number)
+                                        
+                                        const top = (sh * 60) + sm
+                                        const duration = ((eh * 60) + em) - top
+                                        const height = Math.max(65, duration)
+
+                                        return {
+                                          item,
+                                          start24,
+                                          end24,
+                                          sh,
+                                          top,
+                                          height,
+                                          end: top + height
+                                        }
+                                      })
+
+                                      // Sort by top ascending
+                                      computedSchedules.sort((a, b) => a.top - b.top)
+
+                                      // Group into clusters of overlapping items
+                                      const clusters: typeof computedSchedules[] = []
+                                      let currentCluster: typeof computedSchedules = []
+                                      let currentClusterMaxEnd = 0
+
+                                      computedSchedules.forEach(sched => {
+                                        if (currentCluster.length === 0) {
+                                          currentCluster.push(sched)
+                                          currentClusterMaxEnd = sched.end
+                                        } else if (sched.top < currentClusterMaxEnd) {
+                                          currentCluster.push(sched)
+                                          currentClusterMaxEnd = Math.max(currentClusterMaxEnd, sched.end)
+                                        } else {
+                                          clusters.push(currentCluster)
+                                          currentCluster = [sched]
+                                          currentClusterMaxEnd = sched.end
+                                        }
+                                      })
+                                      if (currentCluster.length > 0) {
+                                        clusters.push(currentCluster)
+                                      }
+
+                                      // Assign column index to each item in each cluster
+                                      interface PositionedItem {
+                                        item: ScheduleItem
+                                        start24: string
+                                        end24: string
+                                        sh: number
+                                        top: number
+                                        height: number
+                                        left: number
+                                        width: number
+                                      }
+                                      const positionedSchedules: PositionedItem[] = []
+
+                                      clusters.forEach(cluster => {
+                                        const colEndTimes: number[] = []
+                                        const clusterItems = cluster.map(sched => {
+                                          let colIdx = -1
+                                          for (let i = 0; i < colEndTimes.length; i++) {
+                                            if (colEndTimes[i] <= sched.top) {
+                                              colIdx = i
+                                              break
+                                            }
+                                          }
+                                          if (colIdx === -1) {
+                                            colIdx = colEndTimes.length
+                                            colEndTimes.push(sched.end)
+                                          } else {
+                                            colEndTimes[colIdx] = sched.end
+                                          }
+                                          return {
+                                            ...sched,
+                                            colIdx
+                                          }
+                                        })
+
+                                        const totalCols = colEndTimes.length
+                                        clusterItems.forEach(sched => {
+                                          positionedSchedules.push({
+                                            item: sched.item,
+                                            start24: sched.start24,
+                                            end24: sched.end24,
+                                            sh: sched.sh,
+                                            top: sched.top,
+                                            height: sched.height,
+                                            left: (sched.colIdx / totalCols) * 100,
+                                            width: (1 / totalCols) * 100
+                                          })
+                                        })
+                                      })
+
                                       return (
                                          <div key={colIdx} className="relative h-full">
-                                            {daySchedules.map((item) => {
-                                               const start24 = convertTo24Hour(item.departureTime)
-                                               const end24 = getEndTimeFor24h(start24)
-
-                                               const [sh, sm] = start24.split(":").map(Number)
-                                               const [eh, em] = end24.split(":").map(Number)
-                                               
-                                               const top = (sh * 60) + sm
-                                               const duration = ((eh * 60) + em) - top
-                                               const height = Math.max(65, duration)
-
+                                            {positionedSchedules.map(({ item, start24, end24, sh, top, height, left, width }) => {
                                                const peakGroup = sh < 12 ? "Morning" : sh >= 16 && sh < 20 ? "Evening" : sh >= 20 || sh < 6 ? "Night" : "Off-Peak"
                                                const colorClasses = getPeakColorClasses(peakGroup)
                                                const isSelected = selectedScheduleId === item.id
@@ -807,8 +895,10 @@ export default function FleetSchedulesPage() {
                                                      style={{ 
                                                         top: `${top}px`, 
                                                         height: `${height}px`,
+                                                        left: `calc(${left}% + 1.5px)`,
+                                                        width: `calc(${width}% - 3px)`,
                                                      }}
-                                                     className={`absolute left-1.5 right-1.5 rounded-lg border p-2.5 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 pointer-events-auto ${colorClasses} ${
+                                                     className={`absolute rounded-lg border p-2.5 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 pointer-events-auto ${colorClasses} ${
                                                         isSelected 
                                                           ? "ring-2 ring-primary border-primary scale-[1.01]" 
                                                           : "hover:scale-[1.005] opacity-95"

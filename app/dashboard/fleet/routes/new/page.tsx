@@ -288,17 +288,52 @@ export default function AddRoutePage() {
       googleMapRef.current.setZoom(14)
     } else if (selectedStopsData.length > 1) {
       googleMapRef.current.fitBounds(bounds)
+      // Draw Polyline path that follows the roads
+      const directionsService = new google.maps.DirectionsService()
+      const waypoints = selectedStopsData.slice(1, -1).map(stop => ({
+        location: new google.maps.LatLng(stop.lat, stop.lng),
+        stopover: true
+      }))
 
-      // Draw Polyline Flight Path connecting Stops
-      const polylineInstance = new google.maps.Polyline({
-        path: pathCoords,
-        geodesic: true,
-        strokeColor: "#3b82f6",
-        strokeOpacity: 0.85,
-        strokeWeight: 4,
-      })
-      polylineInstance.setMap(googleMapRef.current)
-      polylineRef.current = polylineInstance
+      directionsService.route(
+        {
+          origin: new google.maps.LatLng(selectedStopsData[0].lat, selectedStopsData[0].lng),
+          destination: new google.maps.LatLng(
+            selectedStopsData[selectedStopsData.length - 1].lat,
+            selectedStopsData[selectedStopsData.length - 1].lng
+          ),
+          waypoints: waypoints,
+          travelMode: google.maps.TravelMode.DRIVING
+        },
+        (result: any, status: string) => {
+          if (polylineRef.current) {
+            polylineRef.current.setMap(null)
+          }
+
+          if (status === "OK" && result && result.routes && result.routes[0]) {
+            const polylineInstance = new google.maps.Polyline({
+              path: result.routes[0].overview_path,
+              geodesic: true,
+              strokeColor: "#3b82f6",
+              strokeOpacity: 0.85,
+              strokeWeight: 4,
+            })
+            polylineInstance.setMap(googleMapRef.current)
+            polylineRef.current = polylineInstance
+          } else {
+            console.warn("Directions request failed: " + status + ". Falling back to straight lines.")
+            const polylineInstance = new google.maps.Polyline({
+              path: pathCoords,
+              geodesic: true,
+              strokeColor: "#3b82f6",
+              strokeOpacity: 0.85,
+              strokeWeight: 4,
+            })
+            polylineInstance.setMap(googleMapRef.current)
+            polylineRef.current = polylineInstance
+          }
+        }
+      )
     }
   }, [selectedStopsData, isMapEngineLoaded])
 

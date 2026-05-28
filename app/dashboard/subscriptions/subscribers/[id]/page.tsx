@@ -95,14 +95,7 @@ export default function SubscriberDetailsPage() {
                   <p className="text-xs text-muted-foreground font-medium">Internal identity: {id}</p>
                </div>
             </div>
-            <div className="flex items-center gap-2">
-               <Button variant="outline" size="sm" className="h-9 px-4 text-xs font-bold gap-2 border-border/60">
-                  <History className="h-3.5 w-3.5" /> Full Audit Trail
-               </Button>
-               <Button size="sm" className="h-9 px-4 text-xs font-bold gap-2 bg-primary">
-                  <Mail className="h-3.5 w-3.5" /> Contact Subscriber
-               </Button>
-            </div>
+
          </div>
 
          <div className="grid gap-8 lg:grid-cols-12">
@@ -175,15 +168,6 @@ export default function SubscriberDetailsPage() {
                            </div>
                         </div>
 
-                        <div className="space-y-1">
-                           <p className="text-4xl font-black text-white">{remainingCredits.toLocaleString()}</p>
-                           <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Available Credits</p>
-                        </div>
-
-                        <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                           <div className="h-full bg-white" style={{ width: `${remainingPercentage}%` }} />
-                        </div>
-
                         <div className="flex items-center justify-between pt-2 border-t border-white/20">
                            <div className="text-white">
                               <p className="text-[9px] font-bold opacity-70 uppercase mb-0.5">Expires On</p>
@@ -201,19 +185,7 @@ export default function SubscriberDetailsPage() {
             {/* Right Column: Analytics & Controls */}
             <div className="lg:col-span-8 space-y-8">
                {/* Subscription Stats */}
-               <div className="grid gap-4 sm:grid-cols-3">
-                  <Card className="border-border/60 bg-card/40 backdrop-blur-sm shadow-sm">
-                     <CardContent className="pt-6">
-                        <div className="flex items-center gap-3 mb-4">
-                           <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                              <TrendingUp className="h-4 w-4" />
-                           </div>
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Utility Rate</span>
-                        </div>
-                        <div className="text-2xl font-black">{usagePercentage.toFixed(1)}%</div>
-                        <p className="text-[10px] text-muted-foreground mt-1 font-medium">Credits consumed vs limit</p>
-                     </CardContent>
-                  </Card>
+               <div className="grid gap-4 sm:grid-cols-2">
                   <Card className="border-border/60 bg-card/40 backdrop-blur-sm shadow-sm">
                      <CardContent className="pt-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -294,27 +266,11 @@ export default function SubscriberDetailsPage() {
                                     <span className="text-xs text-muted-foreground">Plan Duration</span>
                                     <span className="text-sm font-bold">{pricingOption.durationDays} Days</span>
                                  </div>
-                                 <Separator className="opacity-40" />
-                                 <div className="flex items-center justify-between pt-1">
-                                    <span className="text-[11px] font-bold uppercase text-primary tracking-tighter">Total Credits Issued</span>
-                                    <span className="text-base font-black font-mono">{totalCredits.toLocaleString()}</span>
-                                 </div>
+
                               </div>
                            </div>
 
-                           <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
-                              <div className="flex items-start gap-3">
-                                 <Ban className="h-4 w-4 text-rose-500 mt-0.5" />
-                                 <div>
-                                    <p className="text-xs font-bold text-rose-600 mb-1">Administrative Controls</p>
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed mb-3">Modifying this ledger will trigger a notification to the subscriber and may impact their mobility access.</p>
-                                    <div className="flex gap-2">
-                                       <Button variant="outline" size="sm" className="h-7 text-[9px] font-black uppercase tracking-widest border-rose-200 text-rose-600 hover:bg-rose-50">Revoke Access</Button>
-                                       <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase tracking-widest text-muted-foreground">Manual Adjust</Button>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
+
                         </div>
                      </div>
                   </CardContent>
