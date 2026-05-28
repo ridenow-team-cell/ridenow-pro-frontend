@@ -4,9 +4,6 @@ import * as React from "react"
 import { useParams } from "next/navigation"
 import {
    Activity,
-   Search,
-   Filter,
-   MoreHorizontal,
    Navigation,
    Clock,
    AlertTriangle,
@@ -15,26 +12,25 @@ import {
    ArrowRight,
    User,
    ShieldAlert,
-   Send,
    ChevronRight,
    MapPin,
    Ban,
    UserMinus,
    RefreshCcw,
    CreditCard,
-   Wallet,
    Banknote,
    History,
-   MessageSquare,
-   Paperclip,
-   Flag,
-   ShieldCheck,
    Zap,
-   Info,
-   MoreVertical,
    ExternalLink,
    Lock,
-   DollarSign
+   Calendar,
+   Mail,
+   Phone,
+   Compass,
+   Info,
+   Star,
+   AlertOctagon,
+   PhoneCall
 } from "lucide-react"
 
 import {
@@ -60,6 +56,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { GoogleMap, Marker, Polyline, useJsApiLoader } from "@react-google-maps/api"
+
+const GOOGLE_MAPS_LIBRARIES: any = ["places"]
 
 const tripData = {
    id: "RN-TRX-000234",
@@ -72,7 +71,10 @@ const tripData = {
       distance: "12.4 km",
       duration: "24 mins",
       stops: 8,
-      completedStops: 3
+      completedStops: 3,
+      startStation: "Central Station",
+      endStation: "Science Plaza North",
+      viaStops: ["Metro Depot", "Market Square", "Tech Hub", "Science Plaza"]
    },
    telemetry: {
       speed: "45 km/h",
@@ -92,14 +94,29 @@ const tripData = {
       name: "Sarah Jenkins",
       id: "DRV-4402",
       phone: "+1 (555) 012-9876",
+      email: "s.jenkins@ridenow.com",
+      license: "CDL-99201A",
       status: "Active",
       rating: 4.9,
       vehicle: {
          type: "Electric Bus",
          plate: "EV-992-RP",
          capacity: 45,
-         owner: "RydeNow Fleet Services"
+         owner: "RydeNow Fleet Services",
+         model: "X-Transit 2025",
+         battery: "85%",
+         diagnostics: "Healthy",
+         manufacturer: "Zenith Motors",
+         status: "Nominal"
       }
+   },
+   schedule: {
+      scheduledDeparture: "14:10 PM",
+      estimatedArrival: "14:38 PM",
+      delay: "+4 mins",
+      dayOfWeek: "Thursday",
+      frequency: "Daily Route",
+      scheduleStatus: "Delayed"
    },
    finance: {
       flatRate: 150, // Flat rate in credits
@@ -116,6 +133,22 @@ const tripData = {
          "Frequent Device Switching",
          "High-Value Transaction Alert"
       ]
+   },
+   rating: {
+      tripRating: 5,
+      driverRating: 4.8,
+      comment: "The ride was exceptionally smooth. The bus was clean and on time.",
+      refunded: false,
+      status: "resolved"
+   },
+   sos: {
+      status: "Triggered",
+      activatedAt: "14:18:22",
+      resolvedAt: "14:25:10",
+      location: "34.0528° N, 118.2445° W",
+      message: "Panic button pressed by passenger seat A12",
+      responder: "LAPD Unit 42",
+      notes: "False alarm. Passenger accidentally pressed the physical panic button."
    },
    timeline: [
       { event: "Booking Created", time: "14:02:12", date: "May 06, 2026", status: "completed" },
@@ -139,6 +172,12 @@ const tripData = {
 export default function TripDetailsPage() {
    const params = useParams()
    const tripId = params.id as string || tripData.id
+
+   const { isLoaded } = useJsApiLoader({
+      id: 'google-map-script',
+      googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
+      libraries: GOOGLE_MAPS_LIBRARIES
+   })
 
    return (
       <div className="flex flex-col min-h-screen bg-background pb-10">
@@ -219,87 +258,136 @@ export default function TripDetailsPage() {
                {/* Left Column: Operations & Timeline (8/12) */}
                <div className="lg:col-span-8 space-y-6">
 
-                  {/* 2. Live Operations Panel (Map + Telemetry) */}
-                  <Card className="overflow-hidden border-border bg-card shadow-sm">
-                     <div className="grid grid-cols-1 md:grid-cols-4 h-[450px]">
-                        <div className="md:col-span-3 relative bg-muted group">
-                           {/* Map Placeholder */}
-                           <img
-                              src="/trip_live_map.png"
-                              alt="Live Trip Map"
-                              className="w-full h-full object-cover opacity-90"
-                           />
-                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                  {/* Live Telemetry Map Card */}
+                  <Card className="border-border shadow-sm overflow-hidden flex flex-col">
+                     <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-4">
+                        <div className="space-y-1">
+                           <CardTitle className="text-base font-bold flex items-center gap-2">
+                              <Navigation className="h-4.5 w-4.5 text-primary" />
+                              Live Telemetry Map
+                           </CardTitle>
+                           <CardDescription className="text-xs">Real-time GPS telematics, route path tracking and vehicle diagnostics.</CardDescription>
+                        </div>
+                        <Badge className="bg-emerald-500 text-white border-none text-[10px] font-black uppercase tracking-wider animate-pulse px-2 py-0.5">
+                           Active Tracking
+                        </Badge>
+                     </CardHeader>
+                     <CardContent className="p-0 h-[380px] relative bg-muted/30">
+                        {isLoaded ? (
+                           <GoogleMap
+                              mapContainerStyle={{ width: '100%', height: '100%' }}
+                              center={{ lat: 9.0535, lng: 7.4880 }}
+                              zoom={13}
+                              options={{
+                                 disableDefaultUI: false,
+                                 zoomControl: true,
+                                 mapTypeControl: false,
+                                 scaleControl: true,
+                                 streetViewControl: false,
+                                 rotateControl: false,
+                                 fullscreenControl: true
+                              }}
+                           >
+                              {/* Origin Stop */}
+                              <Marker
+                                 position={{ lat: 9.0667, lng: 7.4833 }}
+                                 title={`Start Station: ${tripData.route.startStation}`}
+                                 icon={{
+                                    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                          <circle cx="12" cy="12" r="10" fill="white"/>
+                                          <circle cx="12" cy="12" r="4" fill="#2563eb"/>
+                                       </svg>
+                                    `),
+                                    scaledSize: new google.maps.Size(20, 20),
+                                    anchor: new google.maps.Point(10, 10)
+                                 }}
+                              />
 
-                           {/* Floating Map Controls */}
-                           <div className="absolute top-4 left-4 flex flex-col gap-2">
-                              <div className="p-2 bg-background/80 backdrop-blur rounded-lg shadow-xl border border-border flex flex-col gap-2">
-                                 <Button size="icon" variant="ghost" className="h-8 w-8"><Plus className="h-4 w-4" /></Button>
-                                 <Separator />
-                                 <Button size="icon" variant="ghost" className="h-8 w-8"><Minus className="h-4 w-4" /></Button>
+                              {/* Destination Stop */}
+                              <Marker
+                                 position={{ lat: 9.0433, lng: 7.5194 }}
+                                 title={`Destination: ${tripData.route.endStation}`}
+                                 icon={{
+                                    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                          <circle cx="12" cy="12" r="10" fill="white"/>
+                                          <circle cx="12" cy="12" r="4" fill="#e11d48"/>
+                                       </svg>
+                                    `),
+                                    scaledSize: new google.maps.Size(20, 20),
+                                    anchor: new google.maps.Point(10, 10)
+                                 }}
+                              />
+
+                              {/* Current Bus Position */}
+                              <Marker
+                                 position={{ lat: 9.0535, lng: 7.4880 }}
+                                 title={`Current Location: ${tripData.driver.vehicle.plate}`}
+                                 icon={{
+                                    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+                                       <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+                                          <rect width="36" height="36" rx="8" fill="#2563eb" stroke="white" stroke-width="2"/>
+                                          <g transform="translate(10, 10)">
+                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                                <line x1="2" y1="10" x2="22" y2="10"/>
+                                                <path d="M6 21v-2M18 21v-2"/>
+                                             </svg>
+                                          </g>
+                                       </svg>
+                                    `),
+                                    scaledSize: new google.maps.Size(36, 36),
+                                    anchor: new google.maps.Point(18, 18)
+                                 }}
+                              />
+
+                              {/* Route Line */}
+                              <Polyline
+                                 path={[
+                                    { lat: 9.0667, lng: 7.4833 },
+                                    { lat: 9.0535, lng: 7.4880 },
+                                    { lat: 9.0433, lng: 7.5194 }
+                                 ]}
+                                 options={{
+                                    strokeColor: "#2563eb",
+                                    strokeOpacity: 0.8,
+                                    strokeWeight: 4,
+                                    geodesic: true
+                                 }}
+                              />
+                           </GoogleMap>
+                        ) : (
+                           <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+                              <div className="flex flex-col items-center gap-2">
+                                 <Activity className="h-8 w-8 text-primary animate-pulse" />
+                                 <p className="text-xs uppercase font-black tracking-widest text-muted-foreground animate-pulse">Loading Live Telematics Map...</p>
                               </div>
-                              <Button size="icon" variant="secondary" className="h-10 w-10 shadow-xl border border-border"><Navigation className="h-5 w-5 text-primary" /></Button>
                            </div>
+                        )}
 
-                           {/* Live Route Info Overlay */}
-                           <div className="absolute bottom-4 left-4 right-4">
-                              <div className="p-4 bg-background/90 backdrop-blur-md rounded-xl border border-border shadow-2xl flex items-center justify-between">
-                                 <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                       <BusIcon className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground leading-none">Next Stop</p>
-                                       <p className="text-sm font-bold mt-1">St. George Station <span className="text-primary ml-1">• 4.2 km away</span></p>
-                                    </div>
-                                 </div>
-                                 <div className="flex items-center gap-6">
-                                    <div className="text-center">
-                                       <p className="text-[10px] font-bold uppercase text-muted-foreground">ETA</p>
-                                       <p className="text-sm font-mono font-bold text-emerald-500">14:38 PM</p>
-                                    </div>
-                                    <Separator orientation="vertical" className="h-8" />
-                                    <div className="text-center">
-                                       <p className="text-[10px] font-bold uppercase text-muted-foreground">Delay</p>
-                                       <p className="text-sm font-mono font-bold text-rose-500">+4m</p>
-                                    </div>
-                                 </div>
+                        <div className="absolute bottom-4 left-4 right-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 p-4 rounded-xl border border-border shadow-lg flex flex-wrap items-center justify-between gap-4">
+                           <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                 <MapPin className="h-5 w-5" />
+                              </div>
+                              <div>
+                                 <p className="text-xs font-black uppercase tracking-tight">{tripData.telemetry.position}</p>
+                                 <p className="text-[10px] text-muted-foreground font-bold">Bearing: {tripData.telemetry.bearing} • Last updated: {tripData.telemetry.lastUpdate}</p>
+                              </div>
+                           </div>
+                           <div className="flex gap-4">
+                              <div className="text-right">
+                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Telemetry Speed</p>
+                                 <p className="text-sm font-black text-foreground">{tripData.telemetry.speed}</p>
+                              </div>
+                              <div className="text-right border-l pl-4 border-border">
+                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Est. Diagnostics</p>
+                                 <p className="text-sm font-black text-emerald-600">Nominal</p>
                               </div>
                            </div>
                         </div>
-
-                        <div className="bg-zinc-950 text-zinc-100 p-6 flex flex-col justify-between">
-                           <div className="space-y-6">
-                              <div className="flex items-center gap-2 text-primary">
-                                 <Activity className="h-4 w-4" />
-                                 <span className="text-xs font-black uppercase tracking-widest">Live Telemetry</span>
-                              </div>
-
-                              <div className="grid gap-4">
-                                 <TelemetryItem icon={<Zap className="h-4 w-4" />} label="Speed" value={tripData.telemetry.speed} />
-                                 <TelemetryItem icon={<Navigation className="h-4 w-4" />} label="Bearing" value={tripData.telemetry.bearing} />
-                                 <TelemetryItem icon={<MapPin className="h-4 w-4" />} label="Coordinates" value={tripData.telemetry.position} className="text-[10px] font-mono" />
-                              </div>
-
-                              <div className="pt-4 space-y-3">
-                                 <div className="flex items-center justify-between text-[10px] font-bold uppercase text-zinc-500">
-                                    <span>Route Progress</span>
-                                    <span>{Math.round((tripData.route.completedStops / tripData.route.stops) * 100)}%</span>
-                                 </div>
-                                 <Progress value={(tripData.route.completedStops / tripData.route.stops) * 100} className="h-1.5 bg-zinc-800" />
-                                 <p className="text-[10px] text-zinc-400 font-medium">3 of 8 stops completed • {tripData.route.name}</p>
-                              </div>
-                           </div>
-
-                           <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 mt-auto">
-                              <div className="flex items-center justify-between mb-2">
-                                 <span className="text-[10px] font-bold uppercase text-zinc-500">Last Ping</span>
-                                 <Badge className="bg-emerald-500/20 text-emerald-500 border-none text-[8px] h-4">STABLE</Badge>
-                              </div>
-                              <p className="text-xs font-mono text-zinc-300">{tripData.telemetry.lastUpdate}</p>
-                           </div>
-                        </div>
-                     </div>
+                     </CardContent>
                   </Card>
 
                   {/* Passenger Manifest Block */}
@@ -381,7 +469,7 @@ export default function TripDetailsPage() {
                            </Button>
                         </CardHeader>
                         <CardContent className="pt-6">
-                           <ScrollArea className="h-[300px] pr-4">
+                           <ScrollArea className="h-[320px] pr-4">
                               <div className="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-muted">
                                  {tripData.timeline.map((item, idx) => (
                                     <div key={idx} className="relative pl-8">
@@ -411,61 +499,108 @@ export default function TripDetailsPage() {
                         </CardFooter>
                      </Card>
 
-                     {/* 9. Support & Dispute Center */}
                      <div className="space-y-6">
-                        <Card className="border-border shadow-sm">
-                           <CardHeader className="pb-3 border-b border-border/50">
-                              <div className="flex items-center justify-between">
-                                 <CardTitle className="text-base font-bold flex items-center gap-2">
-                                    <MessageSquare className="h-4 w-4 text-primary" />
-                                    Support & Disputes
-                                 </CardTitle>
-                                 <Badge className="bg-rose-500 text-white border-none text-[10px] uppercase font-black">1 Active</Badge>
-                              </div>
+                        {/* SOS Emergency Console */}
+                        <Card className="border-rose-200 bg-rose-500/[0.01] shadow-sm relative overflow-hidden">
+                           <div className="absolute top-0 right-0 p-4">
+                              <AlertOctagon className="h-10 w-10 text-rose-500/10 scale-150 rotate-12" />
+                           </div>
+                           <CardHeader className="pb-3 border-b border-rose-100 flex flex-row items-center justify-between">
+                              <CardTitle className="text-base font-bold flex items-center gap-2 text-rose-600">
+                                 <AlertOctagon className="h-4 w-4 animate-pulse" />
+                                 SOS Alert System
+                              </CardTitle>
+                              <Badge className="bg-rose-500 text-white border-none text-[10px] font-black uppercase tracking-wider animate-pulse px-2 py-0.5">
+                                 {tripData.sos.status}
+                              </Badge>
                            </CardHeader>
                            <CardContent className="pt-6 space-y-4">
-                              <div className="p-4 rounded-lg bg-rose-50 border border-rose-100 space-y-2">
-                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-bold uppercase text-rose-500">Complaint #TK-8802</span>
-                                    <span className="text-[10px] text-muted-foreground font-medium">10m ago</span>
+                              <div className="p-3.5 bg-rose-50 border border-rose-100/50 rounded-lg space-y-2">
+                                 <div className="flex items-center justify-between text-[10px]">
+                                    <span className="font-bold text-rose-500 uppercase tracking-wide">Trigger Event</span>
+                                    <span className="text-muted-foreground font-mono">{tripData.sos.activatedAt}</span>
                                  </div>
-                                 <p className="text-sm font-bold">Route Deviation Reported</p>
-                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    Passenger claims driver missed the intended stop at Science Plaza.
+                                 <p className="text-xs font-bold text-rose-950 leading-relaxed">
+                                    {tripData.sos.message}
                                  </p>
-                                 <div className="flex items-center gap-2 pt-2">
-                                    <Button size="sm" className="h-8 text-[9px] font-bold uppercase bg-rose-600 hover:bg-rose-700">Open Chat</Button>
-                                    <Button size="sm" variant="outline" className="h-8 text-[9px] font-bold uppercase border-rose-200 text-rose-700 hover:bg-rose-100">Issue Refund</Button>
+                                 <div className="flex items-center gap-1.5 text-xs text-rose-700">
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    <span className="font-mono font-medium">{tripData.sos.location}</span>
                                  </div>
+                              </div>
+
+                              <div className="space-y-2 text-xs">
+                                 <div className="flex justify-between">
+                                    <span className="text-muted-foreground font-medium">First Responder</span>
+                                    <span className="font-bold text-foreground">{tripData.sos.responder}</span>
+                                 </div>
+                                 <div className="flex justify-between">
+                                    <span className="text-muted-foreground font-medium">Resolution Time</span>
+                                    <span className="font-bold text-foreground">{tripData.sos.resolvedAt}</span>
+                                 </div>
+                                 <div className="space-y-1 bg-muted/20 p-2.5 rounded border border-border/50">
+                                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Responder Notes</span>
+                                    <p className="text-xs text-muted-foreground leading-normal italic">
+                                       "{tripData.sos.notes}"
+                                    </p>
+                                 </div>
+                              </div>
+
+                              <div className="pt-2 flex gap-2">
+                                 <Button variant="outline" size="sm" className="flex-1 h-9 text-[10px] font-bold uppercase border-rose-200 text-rose-600 hover:bg-rose-50">
+                                    <PhoneCall className="mr-1.5 h-3.5 w-3.5" />
+                                    Contact Dispatch
+                                 </Button>
+                                 <Button variant="outline" size="sm" className="flex-1 h-9 text-[10px] font-bold uppercase border-border">
+                                    Location History
+                                 </Button>
                               </div>
                            </CardContent>
                         </Card>
 
-                        {/* 8. Internal Notes & Admin Collaboration */}
+                        {/* Ratings & Feedback Card */}
                         <Card className="border-border shadow-sm">
                            <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
                               <CardTitle className="text-base font-bold flex items-center gap-2">
-                                 <Paperclip className="h-4 w-4 text-primary" />
-                                 Internal Notes
+                                 <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                                 Passenger Feedback
                               </CardTitle>
-                              <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px] font-bold uppercase text-primary">Add Note</Button>
+                              <Badge className="bg-emerald-500 text-white border-none text-[10px] font-black uppercase tracking-wider px-2 py-0.5">
+                                 {tripData.rating.status}
+                              </Badge>
                            </CardHeader>
-                           <CardContent className="pt-6">
-                              <div className="space-y-4">
-                                 <div className="flex gap-3">
-                                    <Avatar className="h-8 w-8 ring-2 ring-background">
-                                       <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">JD</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 space-y-1">
-                                       <div className="flex items-center justify-between">
-                                          <span className="text-[11px] font-bold">Admin: James D.</span>
-                                          <span className="text-[10px] text-muted-foreground">14:15 PM</span>
-                                       </div>
-                                       <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg border border-border">
-                                          Monitoring the route deviation. Driver says there's a road block near the plaza.
-                                       </p>
+                           <CardContent className="pt-6 space-y-4">
+                              <div className="flex items-center justify-between">
+                                 <div className="space-y-1">
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Overall Trip Rating</span>
+                                    <div className="flex gap-0.5">
+                                       {[...Array(5)].map((_, i) => (
+                                          <Star key={i} className={`h-4.5 w-4.5 ${
+                                             i < tripData.rating.tripRating ? 'text-amber-500 fill-amber-500' : 'text-muted/30'
+                                          }`} />
+                                       ))}
                                     </div>
                                  </div>
+                                 <div className="text-right">
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Driver Rating</span>
+                                    <p className="text-sm font-black text-foreground">★ {tripData.rating.driverRating}</p>
+                                 </div>
+                              </div>
+
+                              <div className="p-3.5 rounded-lg bg-muted/40 border border-border/50 relative">
+                                 <span className="absolute -top-2.5 left-3 px-1.5 bg-background text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Review Comment</span>
+                                 <p className="text-xs text-muted-foreground leading-relaxed italic">
+                                    "{tripData.rating.comment}"
+                                 </p>
+                              </div>
+
+                              <div className="pt-2 flex gap-2">
+                                 <Button variant="outline" size="sm" className="flex-1 h-9 text-[10px] font-bold uppercase border-border">
+                                    Reply to Rider
+                                 </Button>
+                                 <Button variant="outline" size="sm" className="flex-1 h-9 text-[10px] font-bold uppercase border-border text-primary border-primary/20 hover:bg-primary/5">
+                                    Issue Refund
+                                 </Button>
                               </div>
                            </CardContent>
                         </Card>
@@ -476,143 +611,241 @@ export default function TripDetailsPage() {
                {/* Right Column: Identity & Finance (4/12) */}
                <div className="lg:col-span-4 space-y-6">
 
-                  {/* 6. Financial Engine (Pinned/Most Critical) */}
-                  <Card className="border-primary/20 bg-primary/[0.02] shadow-md relative overflow-hidden">
-                     <div className="absolute top-0 right-0 p-4">
-                        <div className="h-12 w-12 rounded-full bg-primary/5 flex items-center justify-center text-primary/20 scale-150 rotate-12">
-                           <Zap className="h-full w-full" />
-                        </div>
-                     </div>
-                     <CardHeader className="pb-4 border-b border-primary/10">
-                        <CardTitle className="text-lg font-black uppercase tracking-tight text-primary flex items-center gap-2">
-                           Financial Engine
-                        </CardTitle>
-                        <CardDescription className="text-xs font-medium">Real-time revenue tracking & control.</CardDescription>
-                     </CardHeader>
-                     <CardContent className="pt-6 space-y-6">
-                        <div className="space-y-3">
-                           <FinanceRow label="Route Flat Rate" value={tripData.finance.flatRate} isCredit />
-                           <FinanceRow label="System Fees / Tax" value={tripData.finance.taxCredits} isCredit />
-                           <FinanceRow label="Promotional Discount" value={tripData.finance.discount} isNegative isCredit />
-                           <Separator className="bg-primary/10 my-4" />
-                           <div className="flex items-center justify-between">
-                              <span className="text-sm font-black uppercase tracking-widest text-primary">Total Credits</span>
-                              <span className="text-2xl font-black text-primary">{tripData.finance.total} <span className="text-xs">CR</span></span>
-                           </div>
-                        </div>
-
-                        <div className="space-y-2">
-                           <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Recent Activity</p>
-                           <div className="text-[10px] space-y-1.5 font-medium">
-                              <div className="flex justify-between p-2 bg-background border border-border/50 rounded">
-                                 <span className="text-muted-foreground">Credit Redemption: {tripData.finance.total} CR</span>
-                                 <span className="font-mono text-emerald-600">SETTLED</span>
-                              </div>
-                              <div className="flex justify-between p-2 bg-background border border-border/50 rounded opacity-50">
-                                 <span className="text-muted-foreground">Settlement: Pending Trip Completion</span>
-                                 <span className="font-mono">WAITING</span>
-                              </div>
-                           </div>
-                        </div>
-                     </CardContent>
-                     <CardFooter className="grid grid-cols-2 gap-3 pt-0 pb-6 px-6">
-                        <Button className="w-full bg-primary hover:bg-primary/90 text-xs font-bold uppercase tracking-wider h-10 shadow-lg">Manual Settle</Button>
-                        <Button variant="outline" className="w-full border-border text-xs font-bold uppercase tracking-wider h-10">Issue Refund</Button>
-                     </CardFooter>
-                  </Card>
-
-
-
-                  {/* 4. Driver & Fleet Block */}
+                  {/* 1. Driver Details Card */}
                   <Card className="border-border shadow-sm">
                      <CardHeader className="pb-3 border-b border-border/50">
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Driver & Fleet Control</CardTitle>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                           <User className="h-4 w-4 text-primary" />
+                           Driver Details
+                        </CardTitle>
                      </CardHeader>
-                     <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                           <div className="flex gap-4">
-                              <Avatar className="h-14 w-14 ring-4 ring-muted shadow-sm">
-                                 <AvatarImage src="/api/placeholder/40/40" />
-                                 <AvatarFallback className="bg-emerald-500/10 text-emerald-600 font-black text-xl">SJ</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                 <p className="text-base font-black leading-none">{tripData.driver.name}</p>
-                                 <p className="text-[10px] font-mono text-muted-foreground mt-1 uppercase tracking-widest">{tripData.driver.id}</p>
-                                 <div className="flex items-center gap-1.5 mt-2">
-                                    <Badge className="h-5 bg-emerald-500/10 text-emerald-600 border-none px-1.5">
-                                       ★ {tripData.driver.rating}
-                                    </Badge>
-                                    <Badge className="h-5 bg-emerald-500 text-white border-none text-[10px] font-bold uppercase tracking-tighter">ACTIVE</Badge>
-                                 </div>
+                     <CardContent className="pt-6 space-y-4">
+                        <div className="flex gap-4">
+                           <Avatar className="h-14 w-14 ring-4 ring-muted shadow-sm">
+                              <AvatarImage src="/api/placeholder/40/40" />
+                              <AvatarFallback className="bg-emerald-500/10 text-emerald-600 font-black text-xl">SJ</AvatarFallback>
+                           </Avatar>
+                           <div>
+                              <p className="text-base font-black leading-none">{tripData.driver.name}</p>
+                              <p className="text-[10px] font-mono text-muted-foreground mt-1 uppercase tracking-widest">{tripData.driver.id}</p>
+                              <div className="flex items-center gap-1.5 mt-2">
+                                 <Badge className="h-5 bg-emerald-500/10 text-emerald-600 border-none px-1.5 font-bold">
+                                    ★ {tripData.driver.rating}
+                                 </Badge>
+                                 <Badge className="h-5 bg-emerald-500 text-white border-none text-[10px] font-bold uppercase tracking-tighter">
+                                    {tripData.driver.status}
+                                 </Badge>
                               </div>
                            </div>
                         </div>
 
-                        <div className="mt-6 p-4 rounded-xl bg-muted/30 border border-border space-y-4">
+                        <Separator className="my-2" />
+
+                        <div className="space-y-2 text-xs">
                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                 <BusIcon className="h-4 w-4 text-primary" />
-                                 <span className="text-xs font-bold">{tripData.driver.vehicle.type}</span>
-                              </div>
-                              <Badge variant="outline" className="bg-background font-mono text-[10px] font-bold uppercase border-border">{tripData.driver.vehicle.plate}</Badge>
+                              <span className="text-muted-foreground font-medium">CDL License</span>
+                              <span className="font-mono font-bold text-foreground">{tripData.driver.license}</span>
                            </div>
-                           <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-muted-foreground font-medium">Capacity Util.</span>
-                              <span className="font-bold">64% / 45 Seats</span>
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                                 <Mail className="h-3.5 w-3.5 text-muted-foreground" /> Email
+                              </span>
+                              <span className="font-medium text-foreground">{tripData.driver.email}</span>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                                 <Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone
+                              </span>
+                              <span className="font-mono font-medium text-foreground">{tripData.driver.phone}</span>
                            </div>
                         </div>
 
-                        <div className="mt-4 pt-2 flex flex-col gap-2">
-                           <Button variant="outline" className="w-full h-9 text-[10px] font-bold uppercase border-border">Swap Vehicle</Button>
-                           <Button variant="outline" className="w-full h-9 text-[10px] font-bold uppercase border-border text-primary border-primary/20 hover:bg-primary/5">Reassign Driver</Button>
+                        <div className="pt-2 flex flex-col gap-2">
+                           <Button variant="outline" className="w-full h-9 text-[10px] font-bold uppercase border-border text-primary border-primary/20 hover:bg-primary/5">
+                              Reassign Driver
+                           </Button>
                         </div>
                      </CardContent>
                   </Card>
 
-                  {/* 7. Risk & Compliance Panel */}
-                  <Card className="border-border bg-zinc-950 text-white shadow-xl overflow-hidden relative">
-                     <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 blur-[60px] pointer-events-none" />
-                     <CardHeader className="pb-3 border-b border-zinc-800">
-                        <div className="flex items-center justify-between">
-                           <CardTitle className="text-sm font-black uppercase tracking-wider text-rose-500 flex items-center gap-2">
-                              <ShieldAlert className="h-4 w-4" />
-                              Risk Profile
-                           </CardTitle>
-                           <Badge className="bg-rose-500 text-white border-none font-black text-xs">{tripData.risk.score}/100</Badge>
-                        </div>
+                  {/* 2. Bus Details Card */}
+                  <Card className="border-border shadow-sm">
+                     <CardHeader className="pb-3 border-b border-border/50">
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                           <BusIcon className="h-4 w-4 text-primary" />
+                           Bus Details
+                        </CardTitle>
                      </CardHeader>
-                     <CardContent className="pt-6 space-y-6">
-                        <div className="space-y-3">
-                           <p className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest">Active Alerts</p>
-                           {tripData.risk.flags.map((flag, idx) => (
-                              <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900 border border-zinc-800 rounded-lg group hover:border-rose-500/50 transition-colors">
-                                 <div className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" />
-                                 <span className="text-[11px] font-bold text-zinc-300 group-hover:text-white transition-colors">{flag}</span>
-                              </div>
-                           ))}
+                     <CardContent className="pt-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                           <div>
+                              <p className="text-sm font-black leading-none">{tripData.driver.vehicle.type}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1 uppercase font-medium">{tripData.driver.vehicle.model}</p>
+                           </div>
+                           <Badge variant="outline" className="bg-background font-mono text-xs font-bold uppercase border-border px-2 py-0.5">
+                              {tripData.driver.vehicle.plate}
+                           </Badge>
                         </div>
 
-                        <div className="pt-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-4">
-                           <div className="space-y-2">
-                              <p className="text-[10px] font-bold uppercase text-zinc-500">Security Insights</p>
-                              <div className="grid grid-cols-2 gap-3 text-[10px] font-mono">
-                                 <div className="space-y-1">
-                                    <p className="text-zinc-500 uppercase">Device IP</p>
-                                    <p className="text-zinc-300">192.168.1.45</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                           <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Capacity</span>
+                              <p className="font-bold text-sm">{tripData.driver.vehicle.capacity} Seats</p>
+                           </div>
+                           <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Diagnostics</span>
+                              <p className="font-bold text-sm text-emerald-600">{tripData.driver.vehicle.diagnostics}</p>
+                           </div>
+                           <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Battery</span>
+                              <p className="font-bold text-sm text-primary">{tripData.driver.vehicle.battery}</p>
+                           </div>
+                           <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Status</span>
+                              <p className="font-bold text-sm text-emerald-600">{tripData.driver.vehicle.status}</p>
+                           </div>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium">Manufacturer</span>
+                              <span className="font-semibold text-foreground">{tripData.driver.vehicle.manufacturer}</span>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium">Operator/Owner</span>
+                              <span className="font-semibold text-foreground">{tripData.driver.vehicle.owner}</span>
+                           </div>
+                        </div>
+
+                        <div className="pt-2">
+                           <Button variant="outline" className="w-full h-9 text-[10px] font-bold uppercase border-border">
+                              Swap Vehicle
+                           </Button>
+                        </div>
+                     </CardContent>
+                  </Card>
+
+                  {/* 3. Route Details Card */}
+                  <Card className="border-border shadow-sm">
+                     <CardHeader className="pb-3 border-b border-border/50">
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                           <Compass className="h-4 w-4 text-primary" />
+                           Route Details
+                        </CardTitle>
+                     </CardHeader>
+                     <CardContent className="pt-6 space-y-4">
+                        <div>
+                           <div className="flex items-center gap-2">
+                              <Badge className="bg-primary/10 text-primary border-none font-bold text-xs">
+                                 {tripData.route.id}
+                              </Badge>
+                              <p className="text-sm font-black text-foreground">{tripData.route.name}</p>
+                           </div>
+                        </div>
+
+                        <div className="space-y-3.5 pt-2">
+                           <div className="relative pl-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-muted-foreground/30">
+                              <div className="relative mb-4">
+                                 <div className="absolute -left-[24px] top-0.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-background flex items-center justify-center">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                                  </div>
-                                 <div className="space-y-1">
-                                    <p className="text-zinc-500 uppercase">Collusion Risk</p>
-                                    <p className="text-emerald-500 font-bold">LOW</p>
+                                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Start Origin</p>
+                                 <p className="text-xs font-bold text-foreground mt-0.5">{tripData.route.startStation}</p>
+                              </div>
+                              <div className="relative">
+                                 <div className="absolute -left-[24px] top-0.5 h-3.5 w-3.5 rounded-full border-2 border-rose-500 bg-background flex items-center justify-center">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                                  </div>
+                                 <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Destination</p>
+                                 <p className="text-xs font-bold text-foreground mt-0.5">{tripData.route.endStation}</p>
                               </div>
                            </div>
                         </div>
+
+                        <Separator className="my-2" />
+
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                           <div className="space-y-1 py-1 bg-muted/20 rounded">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Distance</span>
+                              <p className="font-bold">{tripData.route.distance}</p>
+                           </div>
+                           <div className="space-y-1 py-1 bg-muted/20 rounded">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Est. Time</span>
+                              <p className="font-bold">{tripData.route.duration}</p>
+                           </div>
+                           <div className="space-y-1 py-1 bg-muted/20 rounded">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Stops</span>
+                              <p className="font-bold">{tripData.route.stops} Stops</p>
+                           </div>
+                        </div>
+
+                        <div className="space-y-1.5 text-xs bg-muted/20 p-3 rounded-lg border border-border/50">
+                           <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Via Stops</span>
+                           <div className="flex flex-wrap gap-1 mt-1">
+                              {tripData.route.viaStops.map((stop, idx) => (
+                                 <Badge key={idx} variant="secondary" className="text-[9px] font-medium bg-background text-muted-foreground border-border/50">
+                                    {stop}
+                                 </Badge>
+                              ))}
+                           </div>
+                        </div>
                      </CardContent>
-                     <CardFooter className="bg-rose-500/5 border-t border-zinc-800 p-4">
-                        <Button variant="ghost" className="w-full text-rose-500 hover:bg-rose-500 hover:text-white text-[10px] font-black uppercase tracking-widest">
-                           Initiate Deep Forensic Audit
-                        </Button>
-                     </CardFooter>
+                  </Card>
+
+                  {/* 4. Schedule Details Card */}
+                  <Card className="border-border shadow-sm">
+                     <CardHeader className="pb-3 border-b border-border/50">
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-primary" />
+                           Schedule Details
+                        </CardTitle>
+                     </CardHeader>
+                     <CardContent className="pt-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                           <div className="space-y-0.5">
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Frequency</span>
+                              <p className="text-xs font-bold text-foreground">{tripData.schedule.frequency}</p>
+                           </div>
+                           <Badge className={`h-5 border-none font-bold text-[10px] uppercase ${
+                              tripData.schedule.scheduleStatus === 'Delayed' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'
+                           }`}>
+                              {tripData.schedule.scheduleStatus}
+                           </Badge>
+                        </div>
+
+                        <Separator className="my-2" />
+
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                           <div className="space-y-1">
+                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5">
+                                 <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Scheduled Dep.
+                              </span>
+                              <p className="font-bold text-foreground text-sm">{tripData.schedule.scheduledDeparture}</p>
+                           </div>
+                           <div className="space-y-1">
+                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5">
+                                 <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Est. Arrival
+                              </span>
+                              <p className="font-bold text-foreground text-sm">{tripData.schedule.estimatedArrival}</p>
+                           </div>
+                        </div>
+
+                        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs">
+                           <span className="font-medium text-amber-800">Current Delay Status</span>
+                           <span className="font-mono font-bold text-amber-700">{tripData.schedule.delay}</span>
+                        </div>
+
+                        <div className="space-y-2 text-xs pt-1">
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium">Day of Week</span>
+                              <span className="font-semibold text-foreground">{tripData.schedule.dayOfWeek}</span>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium">Dispatch Authority</span>
+                              <span className="font-semibold text-foreground">RydeNow Auto-Dispatch</span>
+                           </div>
+                        </div>
+                     </CardContent>
                   </Card>
                </div>
             </div>
@@ -633,16 +866,6 @@ function TelemetryItem({ icon, label, value, className = "" }: { icon: React.Rea
    )
 }
 
-function FinanceRow({ label, value, isNegative = false, isCredit = false }: { label: string, value: number, isNegative?: boolean, isCredit?: boolean }) {
-   return (
-      <div className="flex items-center justify-between text-xs">
-         <span className="font-medium text-muted-foreground">{label}</span>
-         <span className={`font-mono font-bold ${isNegative ? 'text-rose-500' : 'text-foreground'}`}>
-            {isNegative ? '-' : ''}{isCredit ? '' : '$'}{Math.abs(value)}{isCredit ? ' CR' : ''}
-         </span>
-      </div>
-   )
-}
 
 function Plus({ className }: { className?: string }) {
    return (

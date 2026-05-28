@@ -16,7 +16,8 @@ import {
   Bell,
   User,
   ArrowLeftRight,
-  Calendar
+  Calendar,
+  Star
 } from "lucide-react"
 
 import {
@@ -92,6 +93,11 @@ const data = {
       icon: ShieldAlert,
     },
     {
+      title: "Trip Review",
+      url: "/dashboard/fleet/reviews",
+      icon: Star,
+    },
+    {
       title: "System Settings",
       url: "/operations/settings",
       icon: Settings,
@@ -105,18 +111,27 @@ export function OperationsSidebar({ ...props }: React.ComponentProps<typeof Side
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar" {...props}>
-      <SidebarHeader className="h-16 border-b border-border/50">
-        <div className="flex h-full items-center gap-3 px-4">
-          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-            <Activity className="size-5" />
-          </div>
-          {state !== "collapsed" && (
-            <div className="flex flex-col gap-0 leading-none">
-              <span className="font-bold tracking-tight text-foreground">RydeNow Pro</span>
-              <span className="text-[10px] uppercase tracking-wider text-primary font-semibold">Command Center</span>
+      <SidebarHeader className="h-28 border-b border-border/50 flex justify-center">
+        <Link href="/operations/live-map" className="flex h-full items-center px-4 hover:opacity-90 transition-opacity w-full">
+          {state === "collapsed" ? (
+            <div className="flex w-9 h-9 items-center justify-start overflow-hidden rounded-xl bg-primary/10 border border-border/50 shadow-sm relative mx-auto">
+              <img
+                src="/logo.png"
+                alt="RydeNow Pro"
+                className="max-w-none h-6 w-auto object-contain absolute left-1.5 brightness-0 invert"
+                style={{ objectPosition: 'left center' }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <img
+                src="/logo.png"
+                alt="RydeNow Pro Logo"
+                className="h-20 w-auto object-contain max-w-[210px] brightness-0 invert"
+              />
             </div>
           )}
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="gap-0">

@@ -28,7 +28,8 @@ import {
   Activity,
   Navigation,
   PlusCircle,
-  Coins
+  Coins,
+  Star
 } from "lucide-react"
 
 import {
@@ -60,6 +61,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import Link from "next/link"
 
 const data = {
   navMain: [
@@ -165,6 +167,11 @@ const data = {
           url: "/dashboard/fleet/incidents",
           icon: ShieldAlert,
         },
+        {
+          title: "Trip Review",
+          url: "/dashboard/fleet/reviews",
+          icon: Star,
+        },
       ],
     },
     {
@@ -218,18 +225,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar" {...props}>
-      <SidebarHeader className="h-16 border-b border-border/50">
-        <div className="flex h-full items-center gap-3 px-4">
-          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Bus className="size-5" />
-          </div>
-          {state !== "collapsed" && (
-            <div className="flex flex-col gap-0 leading-none">
-              <span className="font-bold tracking-tight text-foreground">RydeNow Pro</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Admin Elite</span>
+      <SidebarHeader className="h-28 border-b border-border/50 flex justify-center">
+        <Link href="/dashboard" className="flex h-full items-center px-4 hover:opacity-90 transition-opacity w-full">
+          {state === "collapsed" ? (
+            <div className="flex w-9 h-9 items-center justify-start overflow-hidden rounded-xl bg-primary/10 border border-border/50 shadow-sm relative mx-auto">
+              <img
+                src="/logo.png"
+                alt="RydeNow Pro"
+                className="max-w-none h-6 w-auto object-contain absolute left-1.5 brightness-0 invert"
+                style={{ objectPosition: 'left center' }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <img
+                src="/logo.png"
+                alt="RydeNow Pro Logo"
+                className="h-20 w-auto object-contain max-w-[210px] brightness-0 invert"
+              />
             </div>
           )}
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
