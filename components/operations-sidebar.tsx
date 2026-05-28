@@ -74,7 +74,7 @@ const data = {
     },
     {
       title: "Schedules",
-      url: "/dashboard/fleet/schedules",
+      url: "/operations/schedules",
       icon: Calendar,
     },
     {
@@ -94,7 +94,7 @@ const data = {
     },
     {
       title: "Trip Review",
-      url: "/dashboard/fleet/reviews",
+      url: "/operations/reviews",
       icon: Star,
     },
     {

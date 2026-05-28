@@ -291,7 +291,7 @@ export default function IncidentsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => router.push(`/dashboard/fleet/incidents/${alert.id}`)}
+                        onClick={() => router.push(`/operations/incidents/${alert.id}`)}
                         className="text-primary hover:text-primary-hover font-bold text-xs uppercase tracking-wider flex items-center gap-1 ml-auto"
                       >
                         Respond <ChevronRight className="h-3.5 w-3.5" />

@@ -342,7 +342,7 @@ export default function IncidentDetailPage() {
       <div className="container mx-auto py-12 text-center space-y-4">
         <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
         <h2 className="text-xl font-bold">Incident Not Found</h2>
-        <Button onClick={() => router.push("/dashboard/fleet/incidents")} className="brand-gradient text-white">
+        <Button onClick={() => router.push("/operations/incidents")} className="brand-gradient text-white">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Incidents
         </Button>
       </div>
@@ -369,7 +369,7 @@ export default function IncidentDetailPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => router.push("/dashboard/fleet/incidents")}
+            onClick={() => router.push("/operations/incidents")}
             className="pl-0 text-muted-foreground hover:text-foreground text-xs"
           >
             <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Back to Incident Feed
