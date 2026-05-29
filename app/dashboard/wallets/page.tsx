@@ -220,14 +220,7 @@ export default function ManageWalletsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 text-xs font-semibold gap-1.5 border-border/60"
-            onClick={fetchData}
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh Analytics
-          </Button>
+
         </div>
       </div>
 

@@ -3,19 +3,10 @@
 import * as React from "react"
 import { useRouter, useParams } from "next/navigation"
 import { 
-  MapPin, 
-  Clock, 
-  Bus, 
   Users, 
   ChevronLeft,
-  Settings2,
-  Navigation,
-  ArrowUpRight,
-  User,
-  ShieldCheck,
   Zap,
   Activity,
-  History,
   Info,
   Loader2,
   AlertCircle
@@ -24,7 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -73,7 +63,7 @@ export default function RouteDetailsPage() {
         } else {
           setError(detailsRes.message || "Failed to load route configuration.")
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err)
         setError("Error synchronizing route intelligence feed.")
       } finally {
@@ -279,7 +269,6 @@ export default function RouteDetailsPage() {
                                       <td className="px-4 py-4">
                                          <div className="flex flex-col">
                                             <span className="text-xs font-bold text-foreground">{sch.departureTime}</span>
-                                            <span className="text-[10px] text-muted-foreground mt-0.5">{sch.daysOfWeek.join(", ")}</span>
                                          </div>
                                       </td>
                                       <td className="px-4 py-4 text-right">

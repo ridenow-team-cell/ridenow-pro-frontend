@@ -46,6 +46,7 @@ export type RevenueAnalytics = {
       title: string
       period: string
       total?: number
+      count?: number
     }
     settlements: {
       title: string
@@ -74,9 +75,10 @@ export type RevenueAnalytics = {
     activeFilter: string
     data: Array<{
       plan: string
-      revenue: number
+      revenue?: number
+      value?: number
       percentage: number
-      color: string
+      color?: string
     }>
   }
 }
@@ -105,11 +107,16 @@ export type BillingAnalytics = {
     description: string
     data: Array<{
       id: string
-      user: string
+      customerName?: string
+      user?: string
+      subscriptionPlan?: string
+      method?: string
       amount: number
       status: string
-      date: string
-      method: string
+      date?: string
+      timestamp?: string
+      timeAgo?: string
+      currency?: string
     }> | null
   }
 }
@@ -133,6 +140,24 @@ export type SubscriptionAnalytics = {
     percentage: number
   }
   totalCreditsIssued: number
+}
+
+export type SubscriptionOpsAnalytics = {
+  activeSubscribers: {
+    title: string
+    value: string
+    description: string
+  }
+  mostPopular: {
+    title: string
+    value: string
+    description: string
+  }
+  mrrEstimate: {
+    title: string
+    value: string
+    description: string
+  }
 }
 
 export type FleetAnalytics = {
@@ -188,6 +213,14 @@ export async function getBillingAnalytics() {
  */
 export async function getSubscriptionAnalytics() {
   return api.get<SubscriptionAnalytics>("/analytics/subscriptions")
+}
+
+/**
+ * Get subscription ops analytics
+ * GET /analytics/subscription-ops
+ */
+export async function getSubscriptionOpsAnalytics() {
+  return api.get<SubscriptionOpsAnalytics>("/analytics/subscription-ops")
 }
 
 /**

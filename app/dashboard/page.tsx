@@ -304,92 +304,10 @@ export default function DashboardPage() {
               )}
             </div>
           </CardContent>
-          <CardFooter className="p-4 border-t border-border/40 bg-muted/10">
-            <Button variant="outline" asChild className="w-full h-9 text-xs font-bold border-border/60 hover:bg-primary hover:text-white transition-all">
-              <Link href="/dashboard/users" className="flex items-center gap-2">
-                View Identity Base <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </CardFooter>
+
         </Card>
 
-        {/* Bottom Row */}
-        <div className="lg:col-span-12 grid gap-5 md:grid-cols-3">
 
-          {/* System Health */}
-          <Card className="border-border/60 shadow-sm bg-card/80">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <Activity className="h-3.5 w-3.5 text-emerald-600" />
-                </div>
-                <CardTitle className="text-sm font-bold">System Health</CardTitle>
-              </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md">
-                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-1">
-              {[
-                { label: "Route RT-402", status: "Normal", value: 92, color: "bg-emerald-500", textColor: "text-emerald-600" },
-                { label: "GPS Gateway", status: "Latency", value: 45, color: "bg-amber-500", textColor: "text-amber-600" },
-                { label: "Boarding Server", status: "Stable", value: 88, color: "bg-emerald-500", textColor: "text-emerald-600" },
-                { label: "Payment Engine", status: "Normal", value: 96, color: "bg-emerald-500", textColor: "text-emerald-600" },
-              ].map((item, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-foreground">{item.label}</span>
-                    <span className={`text-[10px] font-bold ${item.textColor}`}>{item.status}</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${item.color}`}
-                      style={{ width: `${item.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-
-          {/* Quick Deployment */}
-          <Card className="border-border/60 bg-zinc-950 text-white shadow-xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-violet-600/10 pointer-events-none" />
-            <div className="absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
-            <CardHeader className="border-b border-white/10 relative z-10 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-primary/20 flex items-center justify-center">
-                  <Zap className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <CardTitle className="text-sm font-bold text-white">Quick Deployment</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5 space-y-3 relative z-10">
-              <div className="grid grid-cols-2 gap-2">
-                <button className="flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded-xl px-3 py-2.5 text-[11px] font-bold text-white">
-                  <Plus className="h-3.5 w-3.5" /> New Driver
-                </button>
-                <button className="flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded-xl px-3 py-2.5 text-[11px] font-bold text-white">
-                  <Bus className="h-3.5 w-3.5" /> New Fleet
-                </button>
-                <button className="flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded-xl px-3 py-2.5 text-[11px] font-bold text-white">
-                  <Route className="h-3.5 w-3.5" /> New Route
-                </button>
-                <button className="flex items-center justify-center gap-1.5 border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded-xl px-3 py-2.5 text-[11px] font-bold text-white">
-                  <UserCheck className="h-3.5 w-3.5" /> New Operator
-                </button>
-              </div>
-              <button className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold text-sm rounded-xl py-2.5 transition-all shadow-lg shadow-primary/20">
-                <Zap className="h-4 w-4" /> Go to Commmand Center
-              </button>
-            </CardContent>
-            <CardFooter className="relative z-10 border-t border-white/10 pt-3 pb-4">
-              <p className="text-[10px] text-white/30 font-medium">Press <kbd className="bg-white/10 px-1.5 py-0.5 rounded text-white/60 text-[10px]">⌘ D</kbd> to toggle dark mode</p>
-            </CardFooter>
-          </Card>
-
-        </div>
       </div>
     </div>
   )

@@ -77,14 +77,7 @@ export default function RevenueTrackingPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Revenue Tracking</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Real-time oversight of collections, billing, and subscription performance.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 text-xs font-semibold gap-1.5 border-border/60">
-            <Download className="h-3.5 w-3.5" /> Export Ledger
-          </Button>
-          <Button size="sm" className="h-9 text-xs font-bold gap-1.5 shadow-sm px-5 bg-primary hover:bg-primary/90">
-            <RefreshCw className="h-3.5 w-3.5" /> Force Sync
-          </Button>
-        </div>
+
       </div>
 
       {/* Summary Cards */}
@@ -144,7 +137,7 @@ export default function RevenueTrackingPage() {
                 <FileText className="h-4 w-4" />
               </div>
             </div>
-            <div className="text-2xl font-bold tracking-tight mb-1.5">{(summary.transactions.total || 0).toLocaleString()}</div>
+            <div className="text-2xl font-bold tracking-tight mb-1.5">{(summary.transactions.count ?? summary.transactions.total ?? 0).toLocaleString()}</div>
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3 text-muted-foreground" />
               <span className="text-[10px] text-muted-foreground font-medium">{summary.transactions.period}</span>
@@ -273,27 +266,32 @@ export default function RevenueTrackingPage() {
           </CardHeader>
           <CardContent className="space-y-5 pt-2">
             {revenueByPlan.data.length > 0 ? (
-              revenueByPlan.data.map((item, idx) => (
-                <div key={idx} className="space-y-2">
-                  <div className="flex justify-between items-end">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2.5 w-2.5 rounded-sm ${item.color}`} />
-                      <span className="text-sm font-bold tracking-tight">{item.plan}</span>
+              revenueByPlan.data.map((item, idx) => {
+                const planValue = item.value ?? item.revenue ?? 0
+                const colors = ["bg-primary", "bg-violet-500", "bg-emerald-500", "bg-amber-500"]
+                const itemColor = item.color || colors[idx % colors.length]
+                return (
+                  <div key={idx} className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2.5 w-2.5 rounded-sm ${itemColor}`} />
+                        <span className="text-sm font-bold tracking-tight">{item.plan}</span>
+                      </div>
+                      <span className="text-xs font-mono font-bold">{formatCurrency(planValue)}</span>
                     </div>
-                    <span className="text-xs font-mono font-bold">{formatCurrency(item.revenue)}</span>
+                    <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`absolute h-full rounded-full transition-all duration-1000 ${itemColor}`}
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">
+                      <span>{item.percentage}% Contribution</span>
+                      <span>₦{(planValue / 1000).toFixed(1)}k</span>
+                    </div>
                   </div>
-                  <div className="relative h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`absolute h-full rounded-full transition-all duration-1000 ${item.color}`}
-                      style={{ width: `${item.percentage}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] font-semibold text-muted-foreground">
-                    <span>{item.percentage}% Contribution</span>
-                    <span>₦{(item.revenue / 1000).toFixed(1)}k</span>
-                  </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                 <PieChart className="h-10 w-10 mb-3 text-muted-foreground/50" />
@@ -302,11 +300,7 @@ export default function RevenueTrackingPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="p-4 border-t border-border/40 bg-muted/10">
-            <Button variant="outline" className="w-full h-9 text-xs font-bold gap-2 border-border/60 hover:bg-primary hover:text-white transition-all group">
-              Manage Pricing Tiers <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </Button>
-          </CardFooter>
+
         </Card>
       </div>
     </div>

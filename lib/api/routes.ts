@@ -1,4 +1,5 @@
 import { api } from "./client"
+import type { Bus } from "./fleet"
 
 export interface RouteStop {
   busStopId: string
@@ -127,6 +128,10 @@ export const getRouteDetails = (id: string) => {
   return api.get<RouteDetailsData>(`/routes/${id}/details`)
 }
 
+export const getRouteBuses = (id: string) => {
+  return api.get<{ buses: Bus[]; total: number }>(`/routes/${id}/buses`)
+}
+
 export const createRoute = (data: CreateRouteRequest) => {
   return api.post<RouteItem>("/routes", data)
 }
@@ -135,5 +140,6 @@ export const routesApi = {
   getRouteStatistics,
   getRoutesList,
   getRouteDetails,
+  getRouteBuses,
   createRoute,
 }

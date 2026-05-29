@@ -3,29 +3,41 @@ import { api } from "./client"
 export interface ScheduleItem {
   id: string
   routeId: string
-  direction: "to" | "from"
-  departureTime: string  // Format: "06:30 AM" or "08:00 AM" or "05:00 PM"
-  daysOfWeek: string[]   // e.g. ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  name: string
+  departureTime: string  // Format: "08:30 AM"
+  date: string           // Format: "2026-06-01"
   isActive: boolean
   routeName?: string
+  busId?: string
+  driverId?: string
+  driver?: {
+    id: string
+    firstName?: string
+    lastName?: string
+    name?: string
+  }
+  daysOfWeek?: string[]   // Keep for compatibility
+  direction?: "to" | "from" // Keep for compatibility
   createdAt?: string
   updatedAt?: string
 }
 
 export interface CreateScheduleRequest {
   routeId: string
-  direction: "to" | "from"
+  name: string
   departureTime: string
-  daysOfWeek: string[]
+  date: string
   isActive: boolean
 }
 
 export interface UpdateScheduleRequest {
   routeId?: string
-  direction?: "to" | "from"
+  name?: string
   departureTime?: string
-  daysOfWeek?: string[]
+  date?: string
   isActive?: boolean
+  busId?: string
+  driverId?: string
 }
 
 export const schedulesApi = {
@@ -39,6 +51,10 @@ export const schedulesApi = {
 
   updateSchedule: (id: string, data: UpdateScheduleRequest) => {
     return api.put<ScheduleItem>(`/schedules/${id}`, data)
+  },
+
+  patchSchedule: (id: string, data: { busId?: string; driverId?: string; isActive?: boolean }) => {
+    return api.patch<ScheduleItem>(`/schedules/${id}`, data)
   },
 
   deleteSchedule: (id: string) => {

@@ -52,8 +52,8 @@ const ADD_ONS = [
   { id: "boost", name: "Priority Boost", price: 1000, icon: Zap, desc: "Jump to front of booking queue anytime" },
   { id: "insure", name: "Insurance Plus", price: 500, icon: Shield, desc: "Higher medical coverage & lost item protection" },
   { id: "auto", name: "Auto-Book", price: 1500, icon: Clock, desc: "Automatically reserves your daily seat" },
-  { id: "buddy", name: "Buddy Share", price: 1500, icon: Users, desc: "Share credits with 1 friend" },
-  { id: "extra", name: "Extra Ride Pack", price: 1000, icon: CreditCard, desc: "Quick top-up: 2,500 extra credits" },
+  { id: "buddy", name: "Buddy Share", price: 1500, icon: Users, desc: "Share subscription benefits with 1 friend" },
+  { id: "extra", name: "Extra Ride Pack", price: 1000, icon: CreditCard, desc: "Quick top-up: Extra rides" },
   { id: "late", name: "Late Hold", price: 500, icon: Clock, desc: "Holds your seat for extra minutes if late" },
   { id: "seat", name: "Seat Lock", price: 1000, icon: Armchair, desc: "Lock same seat position daily" },
   { id: "alerts", name: "Smart Alerts", price: 300, icon: Bell, desc: "Notifications before booking opens" },
@@ -229,8 +229,8 @@ function NewCreditPlanPageContent() {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">{form.id ? "Edit Credit Plan" : "Create Credit Plan"}</h1>
-              <p className="text-xs text-muted-foreground font-medium">{form.id ? "Update existing plan properties" : "Design a custom RydeNow credit offering"}</p>
+              <h1 className="text-lg font-bold tracking-tight">{form.id ? "Edit Plan" : "Create Plan"}</h1>
+              <p className="text-xs text-muted-foreground font-medium">{form.id ? "Update existing plan properties" : "Design a custom RydeNow offering"}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -350,7 +350,7 @@ function NewCreditPlanPageContent() {
                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="hidden grid gap-6 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Base Credits</Label>
                   <Input
@@ -446,7 +446,7 @@ function NewCreditPlanPageContent() {
             </section>
 
             {/* Add-ons Configuration */}
-            <section className="space-y-4">
+            <section className="hidden space-y-4">
               <div className="flex items-center gap-2">
                 <Plus className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Available Add-ons</h2>
@@ -521,7 +521,7 @@ function NewCreditPlanPageContent() {
                     <div className="relative z-10 flex flex-col gap-6">
                       <div className="flex justify-between items-start text-white">
                         <div>
-                          <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Credit Plan</p>
+                          <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Plan Tier</p>
                           <h3 className="text-2xl font-black tracking-tight leading-none">{form.name || "Untitled Plan"}</h3>
                         </div>
                         <div className="h-10 w-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
@@ -529,7 +529,7 @@ function NewCreditPlanPageContent() {
                         </div>
                       </div>
 
-                      <div className="space-y-1">
+                      <div className="hidden space-y-1">
                         <p className="text-3xl font-black text-white">{finalCredits.toLocaleString()}</p>
                         <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Total Credits Included</p>
                       </div>
@@ -566,7 +566,7 @@ function NewCreditPlanPageContent() {
                   </div>
 
                   {/* Add-ons in App */}
-                  {form.selectedAddOns.length > 0 && (
+                  {false && form.selectedAddOns.length > 0 && (
                     <div className="space-y-3 pt-2">
                       <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">Active Add-ons</p>
                       {form.selectedAddOns.map((id) => {
@@ -598,7 +598,7 @@ function NewCreditPlanPageContent() {
               </div>
 
               {/* Summary Stats */}
-              <div className="mt-8 grid grid-cols-2 gap-4 w-full">
+              <div className="hidden mt-8 grid grid-cols-2 gap-4 w-full">
                 <div className="p-4 rounded-3xl bg-card border border-border text-center">
                   <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Cost / Trip</p>
                   <p className="text-sm font-black">₦{finalCredits > 0 ? Math.round(parseInt(form.price || "0") / (finalCredits / 500)) : 0}</p>

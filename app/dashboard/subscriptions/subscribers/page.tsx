@@ -107,16 +107,7 @@ export default function SubscriberListPage() {
             Monitor subscription status, renewal cycles, and user eligibility.
           </p>
         </div>
-        <div className="flex items-center gap-3 pt-2 md:pt-0">
-          <Button variant="outline" size="sm" className="h-9 px-4 font-medium border-border/60 hover:bg-muted text-xs">
-            <ShieldAlert className="mr-2 h-4 w-4" />
-            Flagged Users
-          </Button>
-          <Button size="sm" className="h-9 px-4 font-bold text-xs shadow-lg shadow-primary/20 bg-primary">
-            <Download className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
-        </div>
+
       </div>
 
       {/* Search & Filter */}
@@ -130,11 +121,7 @@ export default function SubscriberListPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="h-10 border-border/50 gap-2 font-medium text-sm">
-            <Filter className="h-4 w-4" /> Filter
-          </Button>
-        </div>
+
       </div>
 
       {/* Subscribers Table */}
@@ -145,7 +132,7 @@ export default function SubscriberListPage() {
               <tr>
                 <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Subscriber</th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Active Plan</th>
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Credits Left</th>
+                <th className="hidden px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Credits Left</th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest">Expiry</th>
                 <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-widest">Actions</th>
@@ -179,7 +166,7 @@ export default function SubscriberListPage() {
                       </div>
                       <p className="text-[9px] text-muted-foreground mt-1 font-mono uppercase tracking-tighter">ID: {sub.id?.substring(sub.id.length - 8) || "N/A"}</p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden px-6 py-4">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between w-24">
                           <span className="text-[10px] font-bold">{sub.remainingCredits.toLocaleString()}</span>
@@ -211,30 +198,7 @@ export default function SubscriberListPage() {
                             View Details <ArrowUpRight className="h-3 w-3" />
                           </Button>
                         </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground group-hover:text-foreground">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-1.5">Subscriber Management</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="gap-2 text-xs font-medium">
-                              <UserIcon className="h-3.5 w-3.5" /> User Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-xs font-medium">
-                              <FileEdit className="h-3.5 w-3.5" /> Adjust Credits
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 text-xs font-medium">
-                              <History className="h-3.5 w-3.5" /> Usage Logs
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="gap-2 text-xs font-medium text-rose-500">
-                              <XCircle className="h-3.5 w-3.5" /> Deactivate Account
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+
                       </div>
                     </td>
                   </tr>
@@ -280,7 +244,7 @@ function SubscriberLoadingScreen() {
             <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Mapping Subscriber Identities</span>
             <div className="h-1.5 w-1.5 rounded-full bg-primary" />
           </div>
-          <p className="text-[10px] text-muted-foreground/60 font-medium tracking-tight">Syncing active credits & renewal states...</p>
+          <p className="text-[10px] text-muted-foreground/60 font-medium tracking-tight">Syncing active subscriptions & renewal states...</p>
         </div>
       </div>
     </div>

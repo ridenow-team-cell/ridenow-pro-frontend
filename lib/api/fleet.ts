@@ -39,6 +39,7 @@ export interface Bus {
   hasWifi: boolean
   hasPanicButton: boolean
   cngInfo: CNGInfo
+  assignedDriverId?: string
   isDeleted: boolean
   createdAt: string
   updatedAt: string
@@ -165,7 +166,7 @@ export const getBus = (id: string) => {
   return api.get<Bus>(`/fleet/buses/${id}`)
 }
 
-export const updateBus = (id: string, data: { status?: string; mileageKm?: number }) => {
+export const updateBus = (id: string, data: { status?: string; mileageKm?: number; assignedDriverId?: string; routeId?: string }) => {
   return api.patch(`/fleet/buses/${id}`, data)
 }
 

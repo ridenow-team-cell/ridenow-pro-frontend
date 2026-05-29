@@ -94,7 +94,7 @@ export default function WalletTransactionsPage() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.setAttribute("href", url)
-      link.setAttribute("download", `wallet_transactions_${new Date().toISOString().slice(0,10)}.csv`)
+      link.setAttribute("download", `wallet_transactions_${new Date().toISOString().slice(0, 10)}.csv`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -136,22 +136,7 @@ export default function WalletTransactionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 text-xs font-semibold gap-1.5 border-border/60"
-            onClick={handleExport}
-          >
-            <Download className="h-3.5 w-3.5" /> Export CSV
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 text-xs font-semibold gap-1.5 border-border/60"
-            onClick={fetchTransactions}
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
+
         </div>
       </div>
 
@@ -360,13 +345,12 @@ export default function WalletTransactionsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Badge
-                          className={`text-[9px] font-bold border-none px-2 h-5 ${
-                            item.status === "Success"
+                          className={`text-[9px] font-bold border-none px-2 h-5 ${item.status === "Success"
                               ? "bg-emerald-500/10 text-emerald-700"
                               : item.status === "Failed"
-                              ? "bg-rose-500/10 text-rose-700"
-                              : "bg-amber-500/10 text-amber-700"
-                          }`}
+                                ? "bg-rose-500/10 text-rose-700"
+                                : "bg-amber-500/10 text-amber-700"
+                            }`}
                         >
                           {item.status}
                         </Badge>

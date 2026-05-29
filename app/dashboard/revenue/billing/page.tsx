@@ -27,13 +27,18 @@ import { getBillingAnalytics, type BillingAnalytics } from "@/lib/api/analytics"
 export default function BillingPage() {
   const [data, setData] = React.useState<BillingAnalytics | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [currentPage, setCurrentPage] = React.useState(1)
 
   const fetchBilling = React.useCallback(async () => {
     try {
       setIsLoading(true)
       const res = await getBillingAnalytics()
+      console.log("[BillingPage] API response:", JSON.stringify(res, null, 2))
       if (res.success && res.data) {
-        setData(res.data)
+        // Handle possible double-nesting: some endpoints wrap body in { data: ... }
+        const payload = (res.data as any)?.data ?? res.data
+        setData(payload as BillingAnalytics)
       }
     } catch (err) {
       console.error("Failed to fetch billing analytics:", err)
@@ -45,6 +50,38 @@ export default function BillingPage() {
   React.useEffect(() => {
     fetchBilling()
   }, [fetchBilling])
+
+  // Reset page to 1 when search query changes
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const itemsPerPage = 8
+
+  const filteredData = React.useMemo(() => {
+    const recentData = data?.recentBillingActivity?.data
+    if (!recentData) return []
+    return recentData.filter((item) => {
+      const query = searchQuery.toLowerCase()
+      const userName = item.customerName ?? item.user ?? ""
+      const planName = item.subscriptionPlan ?? item.method ?? ""
+      const id = item.id ?? ""
+      const status = item.status ?? ""
+      return (
+        userName.toLowerCase().includes(query) ||
+        id.toLowerCase().includes(query) ||
+        status.toLowerCase().includes(query) ||
+        planName.toLowerCase().includes(query)
+      )
+    })
+  }, [data, searchQuery])
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1
+  const startIndex = (currentPage - 1) * itemsPerPage
+
+  const paginatedData = React.useMemo(() => {
+    return filteredData.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredData, startIndex, itemsPerPage])
 
   if (isLoading) {
     return <BillingLoadingScreen />
@@ -69,14 +106,7 @@ export default function BillingPage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Billing Engine</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Automated subscription management, payment processing, and recovery oversight.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 text-xs font-semibold gap-1.5 border-border/60">
-            <Filter className="h-3.5 w-3.5" /> Filter Results
-          </Button>
-          <Button size="sm" className="h-9 text-xs font-bold gap-1.5 shadow-sm px-5 bg-primary hover:bg-primary/90">
-            <RefreshCw className="h-3.5 w-3.5" /> Process Batch
-          </Button>
-        </div>
+
       </div>
 
       {/* Overview Cards */}
@@ -156,7 +186,12 @@ export default function BillingPage() {
             <div className="flex items-center gap-2">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                <Input placeholder="Search transactions..." className="pl-9 h-9 text-xs border-border/60" />
+                <Input
+                  placeholder="Search transactions..."
+                  className="pl-9 h-9 text-xs border-border/60"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
               <Button variant="outline" size="icon" className="h-9 w-9 border-border/60">
                 <Download className="h-3.5 w-3.5" />
@@ -172,50 +207,50 @@ export default function BillingPage() {
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Entity</th>
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">ID</th>
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Amount</th>
-                  <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Method</th>
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
                   <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground text-right">Timestamp</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
-                {recentBillingActivity.data && recentBillingActivity.data.length > 0 ? (
-                  recentBillingActivity.data.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border border-border/60">
-                            <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
-                              {item.user ? item.user.split(' ').filter(Boolean).map(n => n[0]).join('') : 'RN'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-bold tracking-tight">{item.user || "Unknown User"}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}</td>
-                      <td className="px-6 py-4 text-sm font-bold">{formatCurrency(item.amount)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-8 rounded bg-muted/60 flex items-center justify-center overflow-hidden border border-border/40">
-                            <CreditCard className="h-3 w-3 text-muted-foreground" />
+                {paginatedData && paginatedData.length > 0 ? (
+                  paginatedData.map((item, idx) => {
+                    const userName = item.customerName ?? item.user ?? "Unknown User"
+                    const planName = item.subscriptionPlan ?? item.method ?? "Standard Plan"
+                    const formattedDate = item.timestamp || item.date
+                      ? new Date(item.timestamp || item.date || "").toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                      : "N/A"
+                    const statusLower = item.status.toLowerCase()
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/20 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 border border-border/60">
+                              <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold">
+                                {userName.split(' ').filter(Boolean).map(n => n[0]).join('') || 'RN'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-bold tracking-tight">{userName}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground font-medium">{item.method}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          className={`text-[9px] font-bold border-none px-2 h-5 ${item.status === 'Success' ? 'bg-emerald-500/10 text-emerald-700' :
-                              item.status === 'Failed' ? 'bg-rose-500/10 text-rose-700' :
+                        </td>
+                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{item.id.substring(0, 12)}</td>
+                        <td className="px-6 py-4 text-sm font-bold">{formatCurrency(item.amount)}</td>
+
+                        <td className="px-6 py-4">
+                          <Badge
+                            className={`text-[9px] font-bold border-none px-2 h-5 ${statusLower === 'success' || statusLower === 'successful' ? 'bg-emerald-500/10 text-emerald-700' :
+                              statusLower === 'failed' ? 'bg-rose-500/10 text-rose-700' :
                                 'bg-amber-500/10 text-amber-700'
-                            }`}
-                        >
-                          {item.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-right text-[11px] font-medium text-muted-foreground">
-                        {new Date(item.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                      </td>
-                    </tr>
-                  ))
+                              }`}
+                          >
+                            {item.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right text-[11px] font-medium text-muted-foreground">
+                          {formattedDate}
+                        </td>
+                      </tr>
+                    )
+                  })
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-6 py-24 text-center">
@@ -231,11 +266,41 @@ export default function BillingPage() {
             </table>
           </div>
         </CardContent>
-        <CardFooter className="bg-muted/10 px-6 py-3 border-t border-border/40 flex items-center justify-between">
-          <p className="text-[10px] font-medium text-muted-foreground italic">Live billing bridge connected • Last sync: Just now</p>
-          <Button variant="ghost" size="sm" className="text-xs font-bold gap-1.5 text-primary h-8">
-            Open Full Audit Log <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
+        <CardFooter className="border-t border-border/40 bg-muted/10 px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <p className="text-xs text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredData.length > 0 ? startIndex + 1 : 0}</span> to{" "}
+              <span className="font-semibold text-foreground">
+                {Math.min(startIndex + itemsPerPage, filteredData.length)}
+              </span>{" "}
+              of <span className="font-semibold text-foreground">{filteredData.length}</span> transactions
+            </p>
+            <Separator orientation="vertical" className="hidden sm:block h-4" />
+            <p className="text-[10px] font-medium text-muted-foreground italic hidden sm:block">Live billing bridge connected</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 text-xs font-semibold px-3 border-border/60"
+            >
+              Previous
+            </Button>
+            <div className="text-xs font-semibold text-muted-foreground px-2">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="h-8 text-xs font-semibold px-3 border-border/60"
+            >
+              Next
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

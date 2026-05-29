@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { getProfile, type UserProfile } from "@/lib/api/auth"
-import { isAuthenticated } from "@/lib/auth"
+import { isAuthenticated, signOut } from "@/lib/auth"
+import { ApiError } from "@/lib/api/client"
 
 interface ProfileContextType {
   user: UserProfile | null
@@ -32,6 +33,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error("Failed to fetch profile:", err)
+      if (err instanceof ApiError) {
+        if (
+          err.status === 401 ||
+          err.status === 404 ||
+          err.message.toLowerCase().includes("user not found")
+        ) {
+          signOut()
+          return
+        }
+      }
       setError(err instanceof Error ? err : new Error("Failed to fetch profile"))
     } finally {
       setIsLoading(false)
