@@ -96,6 +96,13 @@ const getPeakColorClasses = (peakGroup: string) => {
   }
 }
 
+const formatDateString = (date: Date) => {
+  const y = date.getFullYear()
+  const m = (date.getMonth() + 1).toString().padStart(2, '0')
+  const d = date.getDate().toString().padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 const formatWeekRange = (date: Date) => {
   const start = new Date(date)
   const day = start.getDay()
@@ -149,13 +156,13 @@ export default function FleetSchedulesPage() {
   const [formName, setFormName] = React.useState("Morning Shuttle Schedule")
   const [formRouteId, setFormRouteId] = React.useState("")
   const [formStartTime, setFormStartTime] = React.useState("08:00")
-  const [formDate, setFormDate] = React.useState("2026-05-18")
+  const [formDate, setFormDate] = React.useState(() => formatDateString(new Date()))
   const [formIsActive, setFormIsActive] = React.useState(true)
   const [formBusId, setFormBusId] = React.useState("")
   const [formDriverId, setFormDriverId] = React.useState("")
 
   // Calendar states
-  const [currentDate, setCurrentDate] = React.useState<Date>(new Date("2026-05-18"))
+  const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date())
   const [calendarView, setCalendarView] = React.useState<"day" | "week" | "month">("day")
   const [currentTime, setCurrentTime] = React.useState(new Date())
 
@@ -284,13 +291,14 @@ export default function FleetSchedulesPage() {
 
   // Mock Fallbacks
   function getMockFallbackSchedules(): ScheduleItem[] {
+    const todayStr = formatDateString(new Date())
     return [
       {
         id: "sch-1",
         routeId: "6a0b4a66fe0f0092c1bdb258",
         name: "Morning Shuttle Schedule",
         departureTime: "06:30 AM",
-        date: "2026-05-18",
+        date: todayStr,
         daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
         isActive: true,
         routeName: "Lekki - Ajah Express"
@@ -300,7 +308,7 @@ export default function FleetSchedulesPage() {
         routeId: "6a0b4a66fe0f0092c1bdb258",
         name: "Evening Return Corridor Run",
         departureTime: "05:00 PM",
-        date: "2026-05-18",
+        date: todayStr,
         daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
         isActive: true,
         routeName: "Lekki - Ajah Express"
@@ -325,13 +333,6 @@ export default function FleetSchedulesPage() {
       return `${displayH}:${m.toString().padStart(2, '0')}${ampm}`
     }
     return `${parseTime(start)} - ${parseTime(end)}`
-  }
-
-  const formatDateString = (date: Date) => {
-    const y = date.getFullYear()
-    const m = (date.getMonth() + 1).toString().padStart(2, '0')
-    const d = date.getDate().toString().padStart(2, '0')
-    return `${y}-${m}-${d}`
   }
 
   // Days calculations for Week View
@@ -594,7 +595,7 @@ export default function FleetSchedulesPage() {
 
   // Today marker metrics
   const isViewingToday = React.useMemo(() => {
-    const todayStr = "2026-05-18"
+    const todayStr = formatDateString(new Date())
     if (calendarView === "day") {
       return formatDateString(currentDate) === todayStr
     } else {
@@ -622,7 +623,7 @@ export default function FleetSchedulesPage() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setCurrentDate(new Date("2026-05-18"))}
+            onClick={() => setCurrentDate(new Date())}
             className="h-8 px-4 text-xs font-bold border-border bg-background rounded-lg hover:bg-muted"
           >
             Today
@@ -722,7 +723,7 @@ export default function FleetSchedulesPage() {
                       </div>
                       <div className={`grid ${calendarView === "day" ? "grid-cols-1" : "grid-cols-7"} divide-x divide-border/50`}>
                          {calendarDays.map((day, idx) => {
-                            const isToday = formatDateString(day) === "2026-05-18"
+                            const isToday = formatDateString(day) === formatDateString(new Date())
                             return (
                                <div key={idx} className={`py-3 flex flex-col items-center justify-center gap-1 ${
                                   isToday ? "bg-primary/[0.04]" : ""
@@ -787,7 +788,7 @@ export default function FleetSchedulesPage() {
                             {calendarDays.map((day, colIdx) => {
                                const dayStr = formatDateString(day)
                                const dayOfWeekName = day.toLocaleDateString("en-US", { weekday: "long" })
-                               const isToday = dayStr === "2026-05-18"
+                               const isToday = dayStr === formatDateString(new Date())
                                
                                const daySchedules = schedules.filter(s => {
                                  return s.date === dayStr || (s.daysOfWeek && s.daysOfWeek.includes(dayOfWeekName))
@@ -983,7 +984,7 @@ export default function FleetSchedulesPage() {
                          const dayStr = formatDateString(day)
                          const dayOfWeekName = day.toLocaleDateString("en-US", { weekday: "long" })
                          const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-                         const isToday = dayStr === "2026-05-18"
+                         const isToday = dayStr === formatDateString(new Date())
                          
                          const daySchedules = schedules.filter(s => {
                            return s.date === dayStr || (s.daysOfWeek && s.daysOfWeek.includes(dayOfWeekName))
