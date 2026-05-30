@@ -83,6 +83,19 @@ const getEndTimeFor24h = (start24: string) => {
   return `${newHour.toString().padStart(2, "0")}:${newMinutes.toString().padStart(2, "0")}`
 }
 
+const getPeakColorClasses = (peakGroup: string) => {
+  switch (peakGroup) {
+    case "Morning":
+      return "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50"
+    case "Evening":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50"
+    case "Night":
+      return "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50"
+    default:
+      return "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800/50"
+  }
+}
+
 const formatWeekRange = (date: Date) => {
   const start = new Date(date)
   const day = start.getDay()
@@ -312,21 +325,6 @@ export default function FleetSchedulesPage() {
       return `${displayH}:${m.toString().padStart(2, '0')}${ampm}`
     }
     return `${parseTime(start)} - ${parseTime(end)}`
-  }
-
-  const getPeakColorClasses = (type: string) => {
-    switch (type) {
-      case "Morning":
-        return "bg-indigo-50/95 text-indigo-700 border-indigo-200 border-l-4 border-l-indigo-600 hover:bg-indigo-100/50 dark:bg-indigo-950/40 dark:text-indigo-200 dark:border-indigo-800"
-      case "Evening":
-        return "bg-emerald-50/95 text-emerald-700 border-emerald-200 border-l-4 border-l-emerald-600 hover:bg-emerald-100/50 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800"
-      case "Off-Peak":
-        return "bg-slate-50/95 text-slate-700 border-slate-200 border-l-4 border-l-slate-600 hover:bg-slate-100/50 dark:bg-slate-900/40 dark:text-slate-200"
-      case "Night":
-        return "bg-violet-50/95 text-violet-700 border-violet-200 border-l-4 border-l-violet-600 hover:bg-violet-100/50 dark:bg-violet-950/40"
-      default:
-        return "bg-blue-50/95 text-blue-700 border-blue-200 border-l-4 border-l-blue-600 hover:bg-blue-100/50"
-    }
   }
 
   const formatDateString = (date: Date) => {
@@ -887,7 +885,6 @@ export default function FleetSchedulesPage() {
                                   <div key={colIdx} className={`relative h-full ${isToday ? "bg-primary/[0.01]" : ""}`}>
                                      {positionedSchedules.map(({ item, start24, end24, sh, top, height, left, width }) => {
                                         const peakGroup = sh < 12 ? "Morning" : sh >= 16 && sh < 20 ? "Evening" : sh >= 20 || sh < 6 ? "Night" : "Off-Peak"
-                                        const colorClasses = getPeakColorClasses(peakGroup)
                                         const isSelected = selectedScheduleId === item.id
 
                                         const matchedRouteName = item.routeName || routesList.find(r => r.id === item.routeId)?.name || "Lekki - Ajah Corridor"
@@ -905,28 +902,57 @@ export default function FleetSchedulesPage() {
                                                  left: `calc(${left}% + 1.5px)`,
                                                  width: `calc(${width}% - 3px)`,
                                               }}
-                                              className={`absolute rounded-lg border p-2 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 pointer-events-auto ${colorClasses} ${
+                                              className={`absolute rounded-xl border border-border/60 bg-card/85 backdrop-blur-sm p-3.5 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-300 pointer-events-auto hover:scale-[1.01] hover:-translate-y-0.5 ${
+                                                 calendarView === "day" ? "max-w-md md:max-w-lg" : ""
+                                              } ${
                                                  isSelected 
-                                                   ? "ring-2 ring-primary border-primary scale-[1.01]" 
-                                                   : "hover:scale-[1.005] opacity-95"
-                                              } ${!item.isActive ? "opacity-45 border-dashed border-slate-300" : ""}`}
+                                                   ? "ring-2 ring-primary border-primary" 
+                                                   : ""
+                                              } ${!item.isActive ? "opacity-50 border-dashed" : ""}`}
                                            >
-                                              <div className="min-w-0">
-                                                 <div className="flex items-center justify-between gap-1">
-                                                    <span className="text-[8px] font-black opacity-80">
-                                                      {formatTimeRange(start24, end24)}
+                                              {/* Left accent bar based on peak hours */}
+                                              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                                                 peakGroup === "Morning" ? "bg-indigo-600 animate-pulse" :
+                                                 peakGroup === "Evening" ? "bg-emerald-600 animate-pulse" :
+                                                 peakGroup === "Night" ? "bg-violet-600 animate-pulse" :
+                                                 "bg-slate-500"
+                                              }`} />
+
+                                              <div className="pl-2.5 h-full flex flex-col justify-between min-w-0">
+                                                 {/* Top line: Time badge & status tag */}
+                                                 <div className="flex items-center justify-between gap-2">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black tracking-wide ${
+                                                       peakGroup === "Morning" ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" :
+                                                       peakGroup === "Evening" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" :
+                                                       peakGroup === "Night" ? "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300" :
+                                                       "bg-slate-100 text-slate-800 dark:bg-slate-850 dark:text-slate-300"
+                                                    }`}>
+                                                       {formatTimeRange(start24, end24)}
                                                     </span>
                                                     {!item.isActive && (
-                                                       <span className="text-[7px] bg-slate-500/20 text-slate-600 font-bold px-1 rounded uppercase tracking-wide">Offline</span>
+                                                       <span className="text-[7.5px] bg-muted text-muted-foreground font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">Offline</span>
                                                     )}
                                                  </div>
-                                                 <p className="text-[10px] font-bold truncate leading-tight uppercase tracking-wider text-slate-800 mt-1">
+
+                                                 {/* Title: Schedule Run Name */}
+                                                 <p className="text-xs font-extrabold text-foreground tracking-wide mt-2 truncate uppercase">
                                                     {item.name || matchedRouteName}
                                                  </p>
                                                  
-                                                 <div className="text-[7.5px] font-medium uppercase mt-1 flex flex-wrap items-center gap-1 opacity-80">
-                                                    <span className="truncate max-w-full">🚌 {item.busId ? (busesList.find(b => b.id === item.busId)?.name || "Bus Assigned") : "No Bus"}</span>
-                                                    <span className="truncate max-w-full">👤 Pilot: {item.driver ? (item.driver.firstName || item.driver.name) : item.driverId ? (driversList.find(d => d.id === item.driverId)?.first_name || 'Assigned') : 'Unassigned'}</span>
+                                                 {/* Details: Vehicle & Driver */}
+                                                 <div className="mt-auto pt-2 flex flex-wrap gap-x-3 gap-y-1 items-center text-[9px] font-bold text-muted-foreground">
+                                                    <span className="flex items-center gap-1 min-w-0 truncate">
+                                                       <BusIcon className="h-3 w-3 text-primary shrink-0" />
+                                                       <span className="truncate">
+                                                          {item.busId ? (busesList.find(b => b.id === item.busId)?.name || "Bus Assigned") : "No Bus"}
+                                                       </span>
+                                                    </span>
+                                                    <span className="flex items-center gap-1 min-w-0 truncate">
+                                                       <User className="h-3 w-3 text-primary shrink-0" />
+                                                       <span className="truncate">
+                                                          {item.driver ? (item.driver.firstName || item.driver.name) : item.driverId ? (driversList.find(d => d.id === item.driverId)?.first_name || 'Assigned') : 'Unassigned'}
+                                                       </span>
+                                                    </span>
                                                  </div>
                                               </div>
                                            </div>
